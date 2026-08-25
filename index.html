@@ -389,28 +389,26 @@
 
       <!-- =================================================
            KITE STRINGS
+           Segmented so they bend naturally.
       ================================================= -->
 
-      <a-entity id="stringOrange"
-        line="start: -0.207 0.165 0.026; end: -0.207 0.165 0.026; color: #f4e8d2; opacity: 0; lineWidth: 1;">
-      </a-entity>
+      <a-entity id="stringOrangeA" line="start: -0.207 0.165 0.026; end: -0.207 0.165 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
+      <a-entity id="stringOrangeB" line="start: -0.207 0.165 0.026; end: -0.207 0.165 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
+      <a-entity id="stringOrangeC" line="start: -0.207 0.165 0.026; end: -0.207 0.165 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
 
-      <a-entity id="stringWhite"
-        line="start: -0.105 0.190 0.026; end: -0.105 0.190 0.026; color: #f4e8d2; opacity: 0; lineWidth: 1;">
-      </a-entity>
+      <a-entity id="stringWhiteA" line="start: -0.105 0.190 0.026; end: -0.105 0.190 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
+      <a-entity id="stringWhiteB" line="start: -0.105 0.190 0.026; end: -0.105 0.190 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
+      <a-entity id="stringWhiteC" line="start: -0.105 0.190 0.026; end: -0.105 0.190 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
 
-      <a-entity id="stringBlue"
-        line="start: 0.135 0.165 0.026; end: 0.135 0.165 0.026; color: #f4e8d2; opacity: 0; lineWidth: 1;">
-      </a-entity>
+      <a-entity id="stringBlueA" line="start: 0.135 0.165 0.026; end: 0.135 0.165 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
+      <a-entity id="stringBlueB" line="start: 0.135 0.165 0.026; end: 0.135 0.165 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
+      <a-entity id="stringBlueC" line="start: 0.135 0.165 0.026; end: 0.135 0.165 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
 
-      <a-entity id="stringOrange2"
-        line="start: -0.36 0.08 0.026; end: -0.36 0.08 0.026; color: #f4e8d2; opacity: 0; lineWidth: 1;">
-      </a-entity>
+      <a-entity id="stringOrange2A" line="start: -0.36 0.08 0.026; end: -0.36 0.08 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
+      <a-entity id="stringOrange2B" line="start: -0.36 0.08 0.026; end: -0.36 0.08 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
 
-      <a-entity id="stringBlue2"
-        line="start: 0.34 0.12 0.026; end: 0.34 0.12 0.026; color: #f4e8d2; opacity: 0; lineWidth: 1;">
-      </a-entity>
-
+      <a-entity id="stringBlue2A" line="start: 0.34 0.12 0.026; end: 0.34 0.12 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
+      <a-entity id="stringBlue2B" line="start: 0.34 0.12 0.026; end: 0.34 0.12 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
 
       <!-- =================================================
            WIND TRAILS
@@ -581,11 +579,29 @@
     ];
 
     const strings = {
-      orange: document.querySelector("#stringOrange"),
-      white: document.querySelector("#stringWhite"),
-      blue: document.querySelector("#stringBlue"),
-      orange2: document.querySelector("#stringOrange2"),
-      blue2: document.querySelector("#stringBlue2")
+      orange: [
+        document.querySelector("#stringOrangeA"),
+        document.querySelector("#stringOrangeB"),
+        document.querySelector("#stringOrangeC")
+      ],
+      white: [
+        document.querySelector("#stringWhiteA"),
+        document.querySelector("#stringWhiteB"),
+        document.querySelector("#stringWhiteC")
+      ],
+      blue: [
+        document.querySelector("#stringBlueA"),
+        document.querySelector("#stringBlueB"),
+        document.querySelector("#stringBlueC")
+      ],
+      orange2: [
+        document.querySelector("#stringOrange2A"),
+        document.querySelector("#stringOrange2B")
+      ],
+      blue2: [
+        document.querySelector("#stringBlue2A"),
+        document.querySelector("#stringBlue2B")
+      ]
     };
 
     const trails = {
@@ -673,20 +689,18 @@
       entity.setAttribute("line", {
         start: `${start.x} ${start.y} ${start.z}`,
         end: `${end.x} ${end.y} ${end.z}`,
-        color: "#f4e8d2",
+        color: "#e8ddc8",
         opacity: opacity,
         lineWidth: 1
       });
     }
 
-    function setLineOpacity(entity, opacity) {
-      if (!entity) return;
+    function setLineGroupOpacity(group, opacity) {
+      if (!group) return;
 
-      const line = entity.getAttribute("line");
-      if (!line) return;
-
-      line.opacity = opacity;
-      entity.setAttribute("line", line);
+      group.forEach(
+        entity => setLineOpacity(entity, opacity)
+      );
     }
 
     function pulsePortalEdges() {
@@ -726,7 +740,7 @@
     }
 
     function resetStringsAndTrails() {
-      Object.values(strings).forEach(
+      Object.values(strings).flat().forEach(
         entity => setLineOpacity(entity, 0)
       );
 
@@ -828,7 +842,7 @@
       endY,
       duration,
       delay,
-      stringEntity = null,
+      stringGroup = [],
       trailEntities = []
     ) {
 
@@ -837,15 +851,8 @@
         if (!tracked) return;
 
         const startTime = performance.now();
-
         const startZ = 0.025;
         const endZ = 0.14;
-
-        const startPoint = {
-          x: startX,
-          y: startY,
-          z: 0.026
-        };
 
         function frame() {
 
@@ -863,23 +870,15 @@
             Math.sin(progress * Math.PI) * 0.055;
 
           const x =
-            startX +
-            (endX - startX) * eased;
+            startX + (endX - startX) * eased;
 
           const y =
-            startY +
-            (endY - startY) * eased +
-            arc;
+            startY + (endY - startY) * eased + arc;
 
           const z =
-            startZ +
-            (endZ - startZ) * eased;
+            startZ + (endZ - startZ) * eased;
 
-          kite.object3D.position.set(
-            x,
-            y,
-            z
-          );
+          kite.object3D.position.set(x, y, z);
 
           kite.object3D.rotation.z =
             Math.PI / 4 +
@@ -892,113 +891,105 @@
           } else if (progress < 0.72) {
             opacity = 1;
           } else {
-            opacity =
-              1 -
-              ((progress - 0.72) / 0.28);
+            opacity = 1 - ((progress - 0.72) / 0.28);
           }
 
-          setEntityOpacity(
-            kite,
-            opacity
-          );
+          setEntityOpacity(kite, opacity);
 
-          /* Curved kite string. */
-          if (stringEntity) {
+          /* Three-segment curved string ending exactly at kite. */
+          if (stringGroup.length) {
 
-            const midpoint = {
-              x:
-                startX +
-                (x - startX) * 0.52 +
-                Math.sin(progress * Math.PI) * 0.035,
+            const dx = x - startX;
+            const dy = y - startY;
 
-              y:
-                startY +
-                (y - startY) * 0.52 -
-                Math.sin(progress * Math.PI) * 0.025,
+            const bend =
+              Math.sin(progress * Math.PI) * 0.025;
 
+            const p0 = {
+              x: startX,
+              y: startY,
               z: 0.026
             };
 
-            setLine(
-              stringEntity,
-              startPoint,
-              midpoint,
-              opacity * 0.72
-            );
+            const p1 = {
+              x: startX + dx * 0.33 - bend,
+              y: startY + dy * 0.33 - bend * 0.35,
+              z: 0.028
+            };
+
+            const p2 = {
+              x: startX + dx * 0.66 + bend,
+              y: startY + dy * 0.66 + bend * 0.35,
+              z: 0.030
+            };
+
+            const p3 = {
+              x: x,
+              y: y,
+              z: z - 0.004
+            };
+
+            if (stringGroup[0]) {
+              setLine(stringGroup[0], p0, p1, opacity * 0.38);
+            }
+
+            if (stringGroup[1]) {
+              setLine(stringGroup[1], p1, p2, opacity * 0.38);
+            }
+
+            if (stringGroup[2]) {
+              setLine(stringGroup[2], p2, p3, opacity * 0.38);
+            }
           }
 
-          /* Two short wind trails. */
+          /* Keep wind trails very faint and short. */
           if (trailEntities.length) {
 
-            const trailBack = {
-              x:
-                x -
-                (endX - startX) * 0.11,
-
-              y:
-                y -
-                (endY - startY) * 0.11,
-
-              z:
-                z - 0.008
+            const back = {
+              x: x - (endX - startX) * 0.08,
+              y: y - (endY - startY) * 0.08,
+              z: z - 0.008
             };
 
-            const trailFar = {
-              x:
-                x -
-                (endX - startX) * 0.20,
-
-              y:
-                y -
-                (endY - startY) * 0.20,
-
-              z:
-                z - 0.010
+            const far = {
+              x: x - (endX - startX) * 0.15,
+              y: y - (endY - startY) * 0.15,
+              z: z - 0.010
             };
 
-            setLine(
-              trailEntities[0],
-              trailBack,
-              { x, y, z: z - 0.006 },
-              opacity * 0.32
-            );
+            if (trailEntities[0]) {
+              setLine(
+                trailEntities[0],
+                back,
+                { x, y, z: z - 0.006 },
+                opacity * 0.16
+              );
+            }
 
-            setLine(
-              trailEntities[1],
-              trailFar,
-              trailBack,
-              opacity * 0.16
-            );
+            if (trailEntities[1]) {
+              setLine(
+                trailEntities[1],
+                far,
+                back,
+                opacity * 0.07
+              );
+            }
           }
 
           if (progress < 1) {
-
-            requestAnimationFrame(
-              frame
-            );
-
+            requestAnimationFrame(frame);
           } else {
-
-            setLineOpacity(
-              stringEntity,
-              0
-            );
-
+            setLineGroupOpacity(stringGroup, 0);
             trailEntities.forEach(
-              entity =>
-                setLineOpacity(entity, 0)
+              entity => setLineOpacity(entity, 0)
             );
           }
         }
 
-        setLineOpacity(
-          stringEntity,
-          0
-        );
+        setLineGroupOpacity(stringGroup, 0);
 
         trailEntities.forEach(
-          entity =>
-            setLineOpacity(entity, 0)
+          entity => setLineOpacity(entity, 0)
         );
 
         requestAnimationFrame(frame);
@@ -1021,8 +1012,6 @@
        * The physical poster briefly "opens" before
        * the artwork escapes.
        */
-      pulsePortalEdges();
-
       /* Hero kites + strings + wind trails. */
 
       animateKite(
@@ -1509,8 +1498,6 @@
                 return;
               }
 
-
-              pulsePortalEdges();
 
               fadeVideoIn();
 
