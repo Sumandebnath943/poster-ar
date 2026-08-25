@@ -386,87 +386,6 @@
         material="shader: flat; color: white; transparent: true; opacity: 0;">
       </a-ring>
 
-
-      <!-- =================================================
-           KITE STRINGS
-           Segmented so they bend naturally.
-      ================================================= -->
-
-      <a-entity id="stringOrangeA" line="start: -0.207 0.165 0.026; end: -0.207 0.165 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
-      <a-entity id="stringOrangeB" line="start: -0.207 0.165 0.026; end: -0.207 0.165 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
-      <a-entity id="stringOrangeC" line="start: -0.207 0.165 0.026; end: -0.207 0.165 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
-
-      <a-entity id="stringWhiteA" line="start: -0.105 0.190 0.026; end: -0.105 0.190 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
-      <a-entity id="stringWhiteB" line="start: -0.105 0.190 0.026; end: -0.105 0.190 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
-      <a-entity id="stringWhiteC" line="start: -0.105 0.190 0.026; end: -0.105 0.190 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
-
-      <a-entity id="stringBlueA" line="start: 0.135 0.165 0.026; end: 0.135 0.165 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
-      <a-entity id="stringBlueB" line="start: 0.135 0.165 0.026; end: 0.135 0.165 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
-      <a-entity id="stringBlueC" line="start: 0.135 0.165 0.026; end: 0.135 0.165 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
-
-      <a-entity id="stringOrange2A" line="start: -0.36 0.08 0.026; end: -0.36 0.08 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
-      <a-entity id="stringOrange2B" line="start: -0.36 0.08 0.026; end: -0.36 0.08 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
-
-      <a-entity id="stringBlue2A" line="start: 0.34 0.12 0.026; end: 0.34 0.12 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
-      <a-entity id="stringBlue2B" line="start: 0.34 0.12 0.026; end: 0.34 0.12 0.026; color: #e8ddc8; opacity: 0; lineWidth: 1;"></a-entity>
-
-      <!-- =================================================
-           WIND TRAILS
-      ================================================== -->
-
-      <a-entity id="trailOrange1"
-        line="start: -0.207 0.165 0.023; end: -0.207 0.165 0.023; color: #ffffff; opacity: 0; lineWidth: 1;">
-      </a-entity>
-
-      <a-entity id="trailOrange2"
-        line="start: -0.207 0.165 0.022; end: -0.207 0.165 0.022; color: #ffffff; opacity: 0; lineWidth: 1;">
-      </a-entity>
-
-      <a-entity id="trailWhite1"
-        line="start: -0.105 0.190 0.023; end: -0.105 0.190 0.023; color: #ffffff; opacity: 0; lineWidth: 1;">
-      </a-entity>
-
-      <a-entity id="trailWhite2"
-        line="start: -0.105 0.190 0.022; end: -0.105 0.190 0.022; color: #ffffff; opacity: 0; lineWidth: 1;">
-      </a-entity>
-
-      <a-entity id="trailBlue1"
-        line="start: 0.135 0.165 0.023; end: 0.135 0.165 0.023; color: #ffffff; opacity: 0; lineWidth: 1;">
-      </a-entity>
-
-      <a-entity id="trailBlue2"
-        line="start: 0.135 0.165 0.022; end: 0.135 0.165 0.022; color: #ffffff; opacity: 0; lineWidth: 1;">
-      </a-entity>
-
-
-      <!-- =================================================
-           PORTAL EDGES
-      ================================================== -->
-
-      <a-plane id="portalTop"
-        width="1.0" height="0.006"
-        position="0 0.281 0.035"
-        material="shader: flat; color: #ffffff; transparent: true; opacity: 0;">
-      </a-plane>
-
-      <a-plane id="portalRight"
-        width="0.006" height="0.562"
-        position="0.496 0 0.035"
-        material="shader: flat; color: #ffffff; transparent: true; opacity: 0;">
-      </a-plane>
-
-      <a-plane id="portalBottom"
-        width="1.0" height="0.006"
-        position="0 -0.281 0.035"
-        material="shader: flat; color: #ffffff; transparent: true; opacity: 0;">
-      </a-plane>
-
-      <a-plane id="portalLeft"
-        width="0.006" height="0.562"
-        position="-0.496 0 0.035"
-        material="shader: flat; color: #ffffff; transparent: true; opacity: 0;">
-      </a-plane>
-
       <!-- =================================================
            EXISTING WORKING VIDEO
            DO NOT CHANGE THESE VALUES
@@ -578,54 +497,6 @@
       document.querySelector("#glint3")
     ];
 
-    const strings = {
-      orange: [
-        document.querySelector("#stringOrangeA"),
-        document.querySelector("#stringOrangeB"),
-        document.querySelector("#stringOrangeC")
-      ],
-      white: [
-        document.querySelector("#stringWhiteA"),
-        document.querySelector("#stringWhiteB"),
-        document.querySelector("#stringWhiteC")
-      ],
-      blue: [
-        document.querySelector("#stringBlueA"),
-        document.querySelector("#stringBlueB"),
-        document.querySelector("#stringBlueC")
-      ],
-      orange2: [
-        document.querySelector("#stringOrange2A"),
-        document.querySelector("#stringOrange2B")
-      ],
-      blue2: [
-        document.querySelector("#stringBlue2A"),
-        document.querySelector("#stringBlue2B")
-      ]
-    };
-
-    const trails = {
-      orange: [
-        document.querySelector("#trailOrange1"),
-        document.querySelector("#trailOrange2")
-      ],
-      white: [
-        document.querySelector("#trailWhite1"),
-        document.querySelector("#trailWhite2")
-      ],
-      blue: [
-        document.querySelector("#trailBlue1"),
-        document.querySelector("#trailBlue2")
-      ]
-    };
-
-    const portalEdges = [
-      document.querySelector("#portalTop"),
-      document.querySelector("#portalRight"),
-      document.querySelector("#portalBottom"),
-      document.querySelector("#portalLeft")
-    ];
-
 
     /* ====================================================
        STATE
@@ -678,100 +549,6 @@
       );
     }
 
-
-    /* ====================================================
-       STRINGS / TRAILS / PORTAL
-    ==================================================== */
-
-    function setLine(entity, start, end, opacity) {
-      if (!entity) return;
-
-      entity.setAttribute("line", {
-        start: `${start.x} ${start.y} ${start.z}`,
-        end: `${end.x} ${end.y} ${end.z}`,
-        color: "#e8ddc8",
-        opacity: opacity,
-        lineWidth: 1
-      });
-    }
-
-    /* FIX:
-       The previous version called setLineOpacity()
-       but did not define it. That stopped the entire
-       kite sequence as soon as the target was detected.
-    */
-    function setLineOpacity(entity, opacity) {
-      if (!entity) return;
-
-      const line = entity.getAttribute("line");
-
-      if (!line) return;
-
-      line.opacity = opacity;
-
-      entity.setAttribute(
-        "line",
-        line
-      );
-    }
-
-    function setLineGroupOpacity(group, opacity) {
-      if (!group) return;
-
-      group.forEach(
-        entity => setLineOpacity(entity, opacity)
-      );
-    }
-
-    function pulsePortalEdges() {
-      portalEdges.forEach((edge, index) => {
-        setEntityOpacity(edge, 0);
-
-        setTimeout(() => {
-          if (!tracked) return;
-
-          const start = performance.now();
-          const duration = 900;
-
-          function frame() {
-            if (!tracked) return;
-
-            const progress = Math.min(
-              (performance.now() - start) / duration,
-              1
-            );
-
-            const brightness =
-              Math.sin(progress * Math.PI);
-
-            setEntityOpacity(
-              edge,
-              brightness * 0.82
-            );
-
-            if (progress < 1) {
-              requestAnimationFrame(frame);
-            }
-          }
-
-          requestAnimationFrame(frame);
-        }, index * 85);
-      });
-    }
-
-    function resetStringsAndTrails() {
-      Object.values(strings).flat().forEach(
-        entity => setLineOpacity(entity, 0)
-      );
-
-      Object.values(trails).flat().forEach(
-        entity => setLineOpacity(entity, 0)
-      );
-
-      portalEdges.forEach(
-        edge => setEntityOpacity(edge, 0)
-      );
-    }
 
     /* ====================================================
        RESET KITES
@@ -845,8 +622,6 @@
           );
         }
       );
-
-      resetStringsAndTrails();
     }
 
 
@@ -861,9 +636,7 @@
       endX,
       endY,
       duration,
-      delay,
-      stringGroup = [],
-      trailEntities = []
+      delay
     ) {
 
       const timer = setTimeout(() => {
@@ -871,6 +644,7 @@
         if (!tracked) return;
 
         const startTime = performance.now();
+
         const startZ = 0.025;
         const endZ = 0.14;
 
@@ -890,15 +664,23 @@
             Math.sin(progress * Math.PI) * 0.055;
 
           const x =
-            startX + (endX - startX) * eased;
+            startX +
+            (endX - startX) * eased;
 
           const y =
-            startY + (endY - startY) * eased + arc;
+            startY +
+            (endY - startY) * eased +
+            arc;
 
           const z =
-            startZ + (endZ - startZ) * eased;
+            startZ +
+            (endZ - startZ) * eased;
 
-          kite.object3D.position.set(x, y, z);
+          kite.object3D.position.set(
+            x,
+            y,
+            z
+          );
 
           kite.object3D.rotation.z =
             Math.PI / 4 +
@@ -911,106 +693,20 @@
           } else if (progress < 0.72) {
             opacity = 1;
           } else {
-            opacity = 1 - ((progress - 0.72) / 0.28);
+            opacity =
+              1 -
+              ((progress - 0.72) / 0.28);
           }
 
-          setEntityOpacity(kite, opacity);
-
-          /* Three-segment curved string ending exactly at kite. */
-          if (stringGroup.length) {
-
-            const dx = x - startX;
-            const dy = y - startY;
-
-            const bend =
-              Math.sin(progress * Math.PI) * 0.025;
-
-            const p0 = {
-              x: startX,
-              y: startY,
-              z: 0.026
-            };
-
-            const p1 = {
-              x: startX + dx * 0.33 - bend,
-              y: startY + dy * 0.33 - bend * 0.35,
-              z: 0.028
-            };
-
-            const p2 = {
-              x: startX + dx * 0.66 + bend,
-              y: startY + dy * 0.66 + bend * 0.35,
-              z: 0.030
-            };
-
-            const p3 = {
-              x: x,
-              y: y,
-              z: z - 0.004
-            };
-
-            if (stringGroup[0]) {
-              setLine(stringGroup[0], p0, p1, opacity * 0.38);
-            }
-
-            if (stringGroup[1]) {
-              setLine(stringGroup[1], p1, p2, opacity * 0.38);
-            }
-
-            if (stringGroup[2]) {
-              setLine(stringGroup[2], p2, p3, opacity * 0.38);
-            }
-          }
-
-          /* Keep wind trails very faint and short. */
-          if (trailEntities.length) {
-
-            const back = {
-              x: x - (endX - startX) * 0.08,
-              y: y - (endY - startY) * 0.08,
-              z: z - 0.008
-            };
-
-            const far = {
-              x: x - (endX - startX) * 0.15,
-              y: y - (endY - startY) * 0.15,
-              z: z - 0.010
-            };
-
-            if (trailEntities[0]) {
-              setLine(
-                trailEntities[0],
-                back,
-                { x, y, z: z - 0.006 },
-                opacity * 0.16
-              );
-            }
-
-            if (trailEntities[1]) {
-              setLine(
-                trailEntities[1],
-                far,
-                back,
-                opacity * 0.07
-              );
-            }
-          }
+          setEntityOpacity(
+            kite,
+            opacity
+          );
 
           if (progress < 1) {
             requestAnimationFrame(frame);
-          } else {
-            setLineGroupOpacity(stringGroup, 0);
-            trailEntities.forEach(
-              entity => setLineOpacity(entity, 0)
-            );
           }
         }
-
-        setLineGroupOpacity(stringGroup, 0);
-
-        trailEntities.forEach(
-          entity => setLineOpacity(entity, 0)
-        );
 
         requestAnimationFrame(frame);
 
@@ -1028,55 +724,42 @@
 
       resetKites();
 
-      /*
-       * The physical poster briefly "opens" before
-       * the artwork escapes.
-       */
-      /* Hero kites + strings + wind trails. */
-
+      /* Hero kites */
       animateKite(
         kiteOrange,
         -0.207, 0.165,
         -0.46, 0.60,
-        1700, 0,
-        strings.orange,
-        trails.orange
+        1700, 0
       );
 
       animateKite(
         kiteWhite,
         -0.105, 0.190,
         -0.02, 0.68,
-        1850, 140,
-        strings.white,
-        trails.white
+        1850, 140
       );
 
       animateKite(
         kiteBlue,
         0.135, 0.165,
         0.46, 0.58,
-        1950, 260,
-        strings.blue,
-        trails.blue
+        1950, 260
       );
 
-      /* Secondary kites. */
-
+      /* Secondary kites move across the scene
+         at different depths and timings. */
       animateKite(
         kiteOrange2,
         -0.36, 0.08,
         -0.60, 0.34,
-        1450, 420,
-        strings.orange2
+        1450, 420
       );
 
       animateKite(
         kiteBlue2,
         0.34, 0.12,
         0.62, 0.42,
-        1500, 560,
-        strings.blue2
+        1500, 560
       );
 
       animateKite(
@@ -1100,10 +783,7 @@
         1450, 1020
       );
 
-      /*
-       * Atmospheric sparks.
-       */
-
+      /* Atmospheric sparks: quick upward drifting points. */
       sparks.forEach(
         (spark, index) => {
 
@@ -1161,17 +841,12 @@
                 if (progress < 0.15) {
                   opacity = progress / 0.15;
                 } else {
-                  opacity =
-                    1 -
-                    ((progress - 0.15) / 0.85);
+                  opacity = 1 - ((progress - 0.15) / 0.85);
                 }
 
                 setEntityOpacity(
                   spark,
-                  Math.max(
-                    0,
-                    opacity * 0.8
-                  )
+                  Math.max(0, opacity * 0.8)
                 );
 
                 if (progress < 1) {
@@ -1193,10 +868,8 @@
         }
       );
 
-      /*
-       * Tiny glints.
-       */
-
+      /* Glints pulse at different moments.
+         These are tiny flashes, not generic particles. */
       glints.forEach(
         (glint, index) => {
 
@@ -1208,7 +881,8 @@
               const start =
                 performance.now();
 
-              const duration = 700;
+              const duration =
+                700;
 
               function glintFrame() {
 
