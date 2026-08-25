@@ -12,8 +12,11 @@
 
   <title>AR Experience</title>
 
+
+  <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 
+  <!-- MindAR -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
 
@@ -23,27 +26,42 @@
       box-sizing: border-box;
     }
 
+
+    html,
     body {
+
       margin: 0;
+
+      width: 100%;
+      height: 100%;
+
       overflow: hidden;
-      background: black;
+
+      background: #000;
+
       font-family: Arial, sans-serif;
+
     }
 
 
-    /* INTRO */
+    /* =========================================
+       INTRO SCREEN
+    ========================================= */
 
     #intro {
 
       position: fixed;
+
       inset: 0;
 
       z-index: 10000;
 
       display: flex;
+
       flex-direction: column;
 
       align-items: center;
+
       justify-content: center;
 
       padding: 30px;
@@ -51,7 +69,8 @@
       text-align: center;
 
       color: white;
-      background: black;
+
+      background: #000;
 
     }
 
@@ -61,6 +80,7 @@
       margin: 0 0 12px;
 
       font-size: 28px;
+
       font-weight: 600;
 
     }
@@ -90,19 +110,26 @@
       border-radius: 999px;
 
       background: white;
+
       color: black;
 
       font-size: 16px;
+
       font-weight: 600;
+
+      cursor: pointer;
 
     }
 
 
-    /* LOADING */
+    /* =========================================
+       LOADING
+    ========================================= */
 
     #loading {
 
       position: fixed;
+
       inset: 0;
 
       z-index: 9500;
@@ -110,17 +137,21 @@
       display: none;
 
       align-items: center;
+
       justify-content: center;
 
       color: white;
-      background: black;
+
+      background: #000;
 
       font-size: 16px;
 
     }
 
 
-    /* SCANNING */
+    /* =========================================
+       SCANNING
+    ========================================= */
 
     #scanning {
 
@@ -129,28 +160,33 @@
       z-index: 9000;
 
       left: 50%;
-      bottom: 50px;
+
+      bottom: 45px;
 
       transform: translateX(-50%);
 
-      padding: 12px 20px;
+      padding: 11px 18px;
 
       border-radius: 999px;
 
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.68);
 
       color: white;
 
-      font-size: 15px;
+      font-size: 14px;
 
       white-space: nowrap;
 
       display: none;
 
+      pointer-events: none;
+
     }
 
 
-    /* FOUND */
+    /* =========================================
+       DETECTED
+    ========================================= */
 
     #found {
 
@@ -159,11 +195,12 @@
       z-index: 9000;
 
       left: 50%;
-      bottom: 50px;
+
+      bottom: 45px;
 
       transform: translateX(-50%);
 
-      padding: 10px 18px;
+      padding: 10px 17px;
 
       border-radius: 999px;
 
@@ -175,6 +212,8 @@
 
       display: none;
 
+      pointer-events: none;
+
     }
 
   </style>
@@ -185,7 +224,9 @@
 <body>
 
 
-  <!-- INTRO -->
+  <!-- =========================================
+       INTRO
+  ========================================= -->
 
   <div id="intro">
 
@@ -203,35 +244,77 @@
   </div>
 
 
-  <!-- LOADING -->
+  <!-- =========================================
+       LOADING
+  ========================================= -->
 
   <div id="loading">
     Starting camera...
   </div>
 
 
-  <!-- SCANNING -->
+  <!-- =========================================
+       SCANNING
+  ========================================= -->
 
   <div id="scanning">
     Point your camera at the poster
   </div>
 
 
-  <!-- FOUND -->
+  <!-- =========================================
+       FOUND
+  ========================================= -->
 
   <div id="found">
     ✓ Poster detected
   </div>
 
 
+  <!-- =========================================
+       AR SCENE
+  ========================================= -->
+
   <a-scene
 
     mindar-image="
+
       imageTargetSrc: ./targets.mind;
+
+      /*
+       * FAST TARGET ACQUISITION
+       *
+       * Lower warmupTolerance =
+       * fewer frames required before
+       * the target appears.
+       */
+
+      warmupTolerance: 1;
+
+
+      /*
+       * FAST TARGET LOSS RECOVERY
+       */
+
+      missTolerance: 2;
+
+
+      /*
+       * MORE RESPONSIVE POSITION TRACKING
+       */
+
+      filterMinCF: 0.01;
+
+      filterBeta: 1500;
+
       autoStart: false;
+
       uiLoading: no;
+
       uiScanning: no;
+
       uiError: yes;
+
     "
 
     color-space="sRGB"
@@ -248,6 +331,10 @@
   >
 
 
+    <!-- =======================================
+         ASSETS
+    ======================================== -->
+
     <a-assets>
 
       <video
@@ -259,14 +346,21 @@
         loop
 
         playsinline
+
         webkit-playsinline
 
         crossorigin="anonymous"
+
+        preload="auto"
 
       ></video>
 
     </a-assets>
 
+
+    <!-- =======================================
+         CAMERA
+    ======================================== -->
 
     <a-camera
 
@@ -277,12 +371,33 @@
     ></a-camera>
 
 
-    <!-- POSTER TARGET -->
+    <!-- =======================================
+         POSTER TARGET
+    ======================================== -->
 
     <a-entity
+
       id="posterTarget"
+
       mindar-image-target="targetIndex: 0"
+
     >
+
+
+      <!--
+
+        IMPORTANT:
+
+        EXACTLY 16:9
+
+        width  = 1
+        height = 0.5625
+
+        No enlargement.
+        No zoom.
+        No offset.
+
+      -->
 
       <a-video
 
@@ -294,7 +409,7 @@
 
         height="0.5625"
 
-        position="0 0 0.01"
+        position="0 0 0.001"
 
         material="
           shader: flat;
@@ -304,6 +419,7 @@
 
       ></a-video>
 
+
     </a-entity>
 
 
@@ -312,6 +428,10 @@
 
   <script>
 
+
+    /* =========================================
+       ELEMENTS
+    ========================================= */
 
     const scene =
       document.querySelector("a-scene");
@@ -349,17 +469,18 @@
       document.querySelector("#posterTarget");
 
 
-    let fadeTimer = null;
-
     let fadeAnimation = null;
 
+    let fadeTimer = null;
 
-    /* ----------------------------------
-       VIDEO OPACITY
-    ---------------------------------- */
+    let isTracked = false;
 
 
-    function setVideoOpacity(value) {
+    /* =========================================
+       OPACITY
+    ========================================= */
+
+    function setOpacity(value) {
 
       const material =
         arVideo.getAttribute("material");
@@ -374,12 +495,12 @@
     }
 
 
-    /* ----------------------------------
-       FADE VIDEO IN
-    ---------------------------------- */
-
+    /* =========================================
+       CINEMATIC FADE
+    ========================================= */
 
     function fadeVideoIn() {
+
 
       if (fadeAnimation) {
 
@@ -394,33 +515,61 @@
         performance.now();
 
 
-      const duration = 1500;
+      /*
+       * Keep this relatively short.
+       *
+       * The first ~2 seconds of your video
+       * are black, so the physical poster
+       * effectively becomes the video.
+       */
+
+      const duration = 1200;
 
 
       function animate() {
 
+
+        if (!isTracked) {
+
+          return;
+
+        }
+
+
         const elapsed =
-          performance.now() - startTime;
+          performance.now() -
+          startTime;
 
 
         const progress =
-          Math.min(elapsed / duration, 1);
+          Math.min(
+            elapsed / duration,
+            1
+          );
 
 
-        // Smooth ease-in
+        /*
+         * Smoothstep easing.
+         *
+         * Starts gently,
+         * finishes naturally.
+         */
 
         const eased =
-          progress * progress *
+          progress *
+          progress *
           (3 - 2 * progress);
 
 
-        setVideoOpacity(eased);
+        setOpacity(eased);
 
 
         if (progress < 1) {
 
           fadeAnimation =
-            requestAnimationFrame(animate);
+            requestAnimationFrame(
+              animate
+            );
 
         }
 
@@ -432,16 +581,21 @@
     }
 
 
-    /* ----------------------------------
-       RESET VIDEO
-    ---------------------------------- */
+    /* =========================================
+       RESET
+    ========================================= */
+
+    function resetExperience() {
 
 
-    function resetVideo() {
+      isTracked = false;
+
 
       if (fadeTimer) {
 
-        clearTimeout(fadeTimer);
+        clearTimeout(
+          fadeTimer
+        );
 
         fadeTimer = null;
 
@@ -463,23 +617,35 @@
 
       video.currentTime = 0;
 
-      setVideoOpacity(0);
+
+      setOpacity(0);
+
+
+      found.style.display =
+        "none";
+
+
+      scanning.style.display =
+        "block";
 
     }
 
 
-    /* ----------------------------------
+    /* =========================================
        START AR
-    ---------------------------------- */
-
+    ========================================= */
 
     startButton.addEventListener(
       "click",
       async () => {
 
-        intro.style.display = "none";
 
-        loading.style.display = "flex";
+        intro.style.display =
+          "none";
+
+
+        loading.style.display =
+          "flex";
 
 
         const mindar =
@@ -490,18 +656,27 @@
 
         try {
 
+
           await mindar.start();
 
 
-          loading.style.display = "none";
+          loading.style.display =
+            "none";
 
-          scanning.style.display = "block";
+
+          scanning.style.display =
+            "block";
+
 
         }
 
         catch (error) {
 
-          console.error(error);
+
+          console.error(
+            error
+          );
+
 
           loading.innerHTML =
             "Unable to access the camera.";
@@ -512,46 +687,69 @@
     );
 
 
-    /* ----------------------------------
+    /* =========================================
        POSTER FOUND
-    ---------------------------------- */
-
+    ========================================= */
 
     target.addEventListener(
       "targetFound",
       () => {
+
+
+        /*
+         * Prevent duplicate starts
+         * when MindAR fires multiple
+         * detection events.
+         */
+
+        if (isTracked) {
+
+          return;
+
+        }
+
+
+        isTracked = true;
+
 
         console.log(
           "POSTER FOUND"
         );
 
 
-        scanning.style.display = "none";
+        scanning.style.display =
+          "none";
 
-        found.style.display = "block";
+
+        found.style.display =
+          "block";
 
 
-        setTimeout(() => {
+        setTimeout(
+          () => {
 
-          found.style.display = "none";
+            found.style.display =
+              "none";
 
-        }, 1200);
+          },
+          1000
+        );
 
 
         /*
-          Start the actual video immediately.
-
-          BUT keep it invisible.
-
-          The camera therefore continues
-          showing the original poster.
-        */
-
-
-        setVideoOpacity(0);
-
+         * ALWAYS START FROM THE
+         * EXACT BEGINNING.
+         */
 
         video.currentTime = 0;
+
+
+        /*
+         * The video begins playing
+         * while completely invisible.
+         */
+
+        setOpacity(0);
 
 
         video.play().catch(
@@ -567,48 +765,47 @@
 
 
         /*
-          Wait approximately 2 seconds.
+         * Your video has a black
+         * opening, so allow it to
+         * naturally establish the
+         * transition before revealing.
+         */
 
-          By this point the video has
-          moved past the black opening.
+        fadeTimer =
+          setTimeout(
+            () => {
 
-          Then reveal it.
-        */
+              if (isTracked) {
 
+                fadeVideoIn();
 
-        fadeTimer = setTimeout(
-          () => {
+              }
 
-            fadeVideoIn();
+            },
+            1800
+          );
 
-          },
-          2000
-        );
 
       }
     );
 
 
-    /* ----------------------------------
+    /* =========================================
        POSTER LOST
-    ---------------------------------- */
-
+    ========================================= */
 
     target.addEventListener(
       "targetLost",
       () => {
+
 
         console.log(
           "POSTER LOST"
         );
 
 
-        scanning.style.display = "block";
+        resetExperience();
 
-        found.style.display = "none";
-
-
-        resetVideo();
 
       }
     );
