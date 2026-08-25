@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+
   <meta charset="UTF-8">
 
   <meta
@@ -15,6 +16,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
+
   <style>
 
     * {
@@ -24,12 +26,12 @@
     body {
       margin: 0;
       overflow: hidden;
-      background: #000;
+      background: black;
       font-family: Arial, sans-serif;
     }
 
 
-    /* ---------- INTRO SCREEN ---------- */
+    /* INTRO */
 
     #intro {
 
@@ -49,7 +51,7 @@
       text-align: center;
 
       color: white;
-      background: #000;
+      background: black;
 
     }
 
@@ -84,6 +86,7 @@
       padding: 15px 28px;
 
       border: none;
+
       border-radius: 999px;
 
       background: white;
@@ -92,12 +95,32 @@
       font-size: 16px;
       font-weight: 600;
 
-      cursor: pointer;
+    }
+
+
+    /* LOADING */
+
+    #loading {
+
+      position: fixed;
+      inset: 0;
+
+      z-index: 9500;
+
+      display: none;
+
+      align-items: center;
+      justify-content: center;
+
+      color: white;
+      background: black;
+
+      font-size: 16px;
 
     }
 
 
-    /* ---------- SCANNING MESSAGE ---------- */
+    /* SCANNING */
 
     #scanning {
 
@@ -127,7 +150,7 @@
     }
 
 
-    /* ---------- VIDEO FOUND MESSAGE ---------- */
+    /* FOUND */
 
     #found {
 
@@ -151,30 +174,6 @@
       font-size: 14px;
 
       display: none;
-
-    }
-
-
-    /* ---------- LOADING ---------- */
-
-    #loading {
-
-      position: fixed;
-
-      inset: 0;
-
-      z-index: 9500;
-
-      display: none;
-
-      align-items: center;
-      justify-content: center;
-
-      color: white;
-
-      background: #000;
-
-      font-size: 16px;
 
     }
 
@@ -229,9 +228,7 @@
 
     mindar-image="
       imageTargetSrc: ./targets.mind;
-
       autoStart: false;
-
       uiLoading: no;
       uiScanning: no;
       uiError: yes;
@@ -283,10 +280,13 @@
     <!-- POSTER TARGET -->
 
     <a-entity
+      id="posterTarget"
       mindar-image-target="targetIndex: 0"
     >
 
       <a-video
+
+        id="arVideo"
 
         src="#film"
 
@@ -295,6 +295,12 @@
         height="0.5625"
 
         position="0 0 0.01"
+
+        material="
+          shader: flat;
+          transparent: true;
+          opacity: 0;
+        "
 
       ></a-video>
 
@@ -335,98 +341,274 @@
       document.querySelector("#film");
 
 
+    const arVideo =
+      document.querySelector("#arVideo");
+
+
     const target =
-      document.querySelector(
-        '[mindar-image-target="targetIndex: 0"]'
+      document.querySelector("#posterTarget");
+
+
+    let fadeTimer = null;
+
+    let fadeAnimation = null;
+
+
+    /* ----------------------------------
+       VIDEO OPACITY
+    ---------------------------------- */
+
+
+    function setVideoOpacity(value) {
+
+      const material =
+        arVideo.getAttribute("material");
+
+      material.opacity = value;
+
+      arVideo.setAttribute(
+        "material",
+        material
       );
 
-
-    /* ---------- START ---------- */
-
-
-    startButton.addEventListener("click", async () => {
-
-      intro.style.display = "none";
-
-      loading.style.display = "flex";
+    }
 
 
-      const mindar =
-        scene.systems["mindar-image-system"];
+    /* ----------------------------------
+       FADE VIDEO IN
+    ---------------------------------- */
 
 
-      try {
+    function fadeVideoIn() {
 
-        await mindar.start();
+      if (fadeAnimation) {
 
-        loading.style.display = "none";
-
-        scanning.style.display = "block";
+        cancelAnimationFrame(
+          fadeAnimation
+        );
 
       }
 
-      catch (error) {
 
-        console.error(error);
+      const startTime =
+        performance.now();
 
-        loading.innerHTML =
-          "Unable to access the camera.";
+
+      const duration = 1500;
+
+
+      function animate() {
+
+        const elapsed =
+          performance.now() - startTime;
+
+
+        const progress =
+          Math.min(elapsed / duration, 1);
+
+
+        // Smooth ease-in
+
+        const eased =
+          progress * progress *
+          (3 - 2 * progress);
+
+
+        setVideoOpacity(eased);
+
+
+        if (progress < 1) {
+
+          fadeAnimation =
+            requestAnimationFrame(animate);
+
+        }
 
       }
 
-    });
+
+      animate();
+
+    }
 
 
-    /* ---------- POSTER FOUND ---------- */
+    /* ----------------------------------
+       RESET VIDEO
+    ---------------------------------- */
+
+
+    function resetVideo() {
+
+      if (fadeTimer) {
+
+        clearTimeout(fadeTimer);
+
+        fadeTimer = null;
+
+      }
+
+
+      if (fadeAnimation) {
+
+        cancelAnimationFrame(
+          fadeAnimation
+        );
+
+        fadeAnimation = null;
+
+      }
+
+
+      video.pause();
+
+      video.currentTime = 0;
+
+      setVideoOpacity(0);
+
+    }
+
+
+    /* ----------------------------------
+       START AR
+    ---------------------------------- */
+
+
+    startButton.addEventListener(
+      "click",
+      async () => {
+
+        intro.style.display = "none";
+
+        loading.style.display = "flex";
+
+
+        const mindar =
+          scene.systems[
+            "mindar-image-system"
+          ];
+
+
+        try {
+
+          await mindar.start();
+
+
+          loading.style.display = "none";
+
+          scanning.style.display = "block";
+
+        }
+
+        catch (error) {
+
+          console.error(error);
+
+          loading.innerHTML =
+            "Unable to access the camera.";
+
+        }
+
+      }
+    );
+
+
+    /* ----------------------------------
+       POSTER FOUND
+    ---------------------------------- */
 
 
     target.addEventListener(
       "targetFound",
       () => {
 
-        console.log("Poster found");
+        console.log(
+          "POSTER FOUND"
+        );
+
 
         scanning.style.display = "none";
 
         found.style.display = "block";
 
 
-        video
-          .play()
-          .catch(error => {
-
-            console.log(
-              "Autoplay prevented:",
-              error
-            );
-
-          });
-
-
         setTimeout(() => {
 
           found.style.display = "none";
 
-        }, 1500);
+        }, 1200);
+
+
+        /*
+          Start the actual video immediately.
+
+          BUT keep it invisible.
+
+          The camera therefore continues
+          showing the original poster.
+        */
+
+
+        setVideoOpacity(0);
+
+
+        video.currentTime = 0;
+
+
+        video.play().catch(
+          error => {
+
+            console.log(
+              "Video playback:",
+              error
+            );
+
+          }
+        );
+
+
+        /*
+          Wait approximately 2 seconds.
+
+          By this point the video has
+          moved past the black opening.
+
+          Then reveal it.
+        */
+
+
+        fadeTimer = setTimeout(
+          () => {
+
+            fadeVideoIn();
+
+          },
+          2000
+        );
 
       }
     );
 
 
-    /* ---------- POSTER LOST ---------- */
+    /* ----------------------------------
+       POSTER LOST
+    ---------------------------------- */
 
 
     target.addEventListener(
       "targetLost",
       () => {
 
-        console.log("Poster lost");
+        console.log(
+          "POSTER LOST"
+        );
 
-        found.style.display = "none";
 
         scanning.style.display = "block";
 
-        video.pause();
+        found.style.display = "none";
+
+
+        resetVideo();
 
       }
     );
