@@ -2,7 +2,6 @@
 <html lang="en">
 
 <head>
-
   <meta charset="UTF-8">
 
   <meta
@@ -10,185 +9,129 @@
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
   >
 
-  <title>AR Experience</title>
+  <title>Living Poster AR</title>
 
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
-
   <style>
-
     * {
       box-sizing: border-box;
     }
 
+    html,
     body {
       margin: 0;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
-      background: black;
+      background: #000;
       font-family: Arial, sans-serif;
     }
 
-
-    /* INTRO */
-
     #intro {
-
       position: fixed;
       inset: 0;
-
       z-index: 10000;
 
       display: flex;
       flex-direction: column;
-
       align-items: center;
       justify-content: center;
 
       padding: 30px;
-
       text-align: center;
 
       color: white;
-      background: black;
-
+      background: #000;
     }
-
 
     #intro h1 {
-
       margin: 0 0 12px;
-
       font-size: 28px;
       font-weight: 600;
-
     }
-
 
     #intro p {
-
       max-width: 320px;
-
       margin: 0 0 28px;
-
       line-height: 1.5;
-
       font-size: 16px;
-
       opacity: 0.75;
-
     }
-
 
     #start {
-
       padding: 15px 28px;
-
       border: none;
-
       border-radius: 999px;
-
       background: white;
       color: black;
-
       font-size: 16px;
       font-weight: 600;
-
+      cursor: pointer;
     }
 
-
-    /* LOADING */
-
     #loading {
-
       position: fixed;
       inset: 0;
-
       z-index: 9500;
 
       display: none;
-
       align-items: center;
       justify-content: center;
 
       color: white;
-      background: black;
+      background: #000;
 
       font-size: 16px;
-
     }
 
-
-    /* SCANNING */
-
-    #scanning {
-
-      position: fixed;
-
-      z-index: 9000;
-
-      left: 50%;
-      bottom: 50px;
-
-      transform: translateX(-50%);
-
-      padding: 12px 20px;
-
-      border-radius: 999px;
-
-      background: rgba(0, 0, 0, 0.7);
-
-      color: white;
-
-      font-size: 15px;
-
-      white-space: nowrap;
-
-      display: none;
-
-    }
-
-
-    /* FOUND */
-
+    #scanning,
     #found {
-
       position: fixed;
-
       z-index: 9000;
-
       left: 50%;
-      bottom: 50px;
+      bottom: 45px;
 
       transform: translateX(-50%);
 
-      padding: 10px 18px;
-
+      padding: 11px 18px;
       border-radius: 999px;
 
-      background: rgba(0, 0, 0, 0.65);
-
+      background: rgba(0, 0, 0, 0.68);
       color: white;
 
       font-size: 14px;
+      white-space: nowrap;
 
       display: none;
-
+      pointer-events: none;
     }
 
-  </style>
+    /* little screen flash */
+    #flash {
+      position: fixed;
+      inset: 0;
+      z-index: 8999;
 
+      background: white;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* AR scene itself should remain completely transparent */
+    a-scene {
+      position: fixed;
+      inset: 0;
+    }
+  </style>
 </head>
 
 
 <body>
 
-
   <!-- INTRO -->
-
   <div id="intro">
-
     <h1>AR Experience</h1>
 
     <p>
@@ -199,48 +142,44 @@
     <button id="start">
       Start Experience
     </button>
-
   </div>
 
 
   <!-- LOADING -->
-
   <div id="loading">
     Starting camera...
   </div>
 
 
-  <!-- SCANNING -->
-
+  <!-- UI -->
   <div id="scanning">
     Point your camera at the poster
   </div>
-
-
-  <!-- FOUND -->
 
   <div id="found">
     ✓ Poster detected
   </div>
 
 
+  <!-- FLASH -->
+  <div id="flash"></div>
+
+
   <a-scene
 
-  mindar-image="
-    imageTargetSrc: ./targets.mind;
+    mindar-image="
+      imageTargetSrc: ./targets.mind;
+      autoStart: false;
+      uiLoading: no;
+      uiScanning: no;
+      uiError: yes;
 
-    autoStart: false;
+      warmupTolerance: 3;
+      missTolerance: 5;
 
-    uiLoading: no;
-    uiScanning: no;
-    uiError: yes;
-
-    warmupTolerance: 3;
-    missTolerance: 5;
-
-    filterMinCF: 0.01;
-    filterBeta: 10000;
-  "
+      filterMinCF: 0.01;
+      filterBeta: 10000;
+    "
 
     color-space="sRGB"
 
@@ -250,56 +189,50 @@
     "
 
     vr-mode-ui="enabled: false"
-
     device-orientation-permission-ui="enabled: false"
-
   >
 
 
     <a-assets>
 
       <video
-
         id="film"
-
         src="./film-web.mp4"
-
         loop
-
         playsinline
         webkit-playsinline
-
         crossorigin="anonymous"
-
+        preload="auto"
       ></video>
 
     </a-assets>
 
 
     <a-camera
-
       position="0 0 0"
-
       look-controls="enabled: false"
-
     ></a-camera>
 
 
-    <!-- POSTER TARGET -->
+    <!-- =========================================
+         EVERYTHING BELOW TRACKS WITH THE POSTER
+    ========================================== -->
 
     <a-entity
       id="posterTarget"
       mindar-image-target="targetIndex: 0"
     >
 
+
+      <!-- =======================================
+           THE ORIGINAL WORKING VIDEO
+      ======================================== -->
+
       <a-video
-
         id="arVideo"
-
         src="#film"
 
         width="1"
-
         height="0.5625"
 
         position="0 0 0.01"
@@ -309,63 +242,417 @@
           transparent: true;
           opacity: 0;
         "
-
       ></a-video>
 
-    </a-entity>
 
+      <!-- =======================================
+           SCAN LINE
+      ======================================== -->
+
+      <a-plane
+        id="scanLine"
+
+        width="1.20"
+        height="0.008"
+
+        position="0 -0.34 0.025"
+
+        material="
+          shader: flat;
+          color: #ffffff;
+          transparent: true;
+          opacity: 0;
+        "
+
+        animation__scan="
+          property: position;
+          from: 0 -0.34 0.025;
+          to: 0 0.34 0.025;
+          dur: 750;
+          easing: easeInOutSine;
+          startEvents: scanStart;
+        "
+
+        animation__fade="
+          property: material.opacity;
+          from: 0.0;
+          to: 0.9;
+          dur: 180;
+          dir: alternate;
+          loop: 2;
+          startEvents: scanStart;
+        "
+      ></a-plane>
+
+
+      <!-- =======================================
+           GLOW RING / BURST
+      ======================================== -->
+
+      <a-ring
+        id="burstRing"
+
+        radius-inner="0.11"
+        radius-outer="0.125"
+
+        position="0 0 0.026"
+
+        material="
+          shader: flat;
+          color: #ffffff;
+          transparent: true;
+          opacity: 0;
+        "
+
+        animation__burstScale="
+          property: scale;
+          from: 0.4 0.4 0.4;
+          to: 2.8 2.8 2.8;
+          dur: 950;
+          easing: easeOutCubic;
+          startEvents: burstStart;
+        "
+
+        animation__burstOpacity="
+          property: material.opacity;
+          from: 0.9;
+          to: 0;
+          dur: 950;
+          easing: easeOutCubic;
+          startEvents: burstStart;
+        "
+      ></a-ring>
+
+
+      <!-- =======================================
+           FLOATING LIGHT PARTICLES
+      ======================================== -->
+
+      <a-sphere
+        class="particle"
+        radius="0.009"
+        position="-0.43 0.24 0.035"
+
+        material="
+          shader: flat;
+          color: #ffffff;
+          transparent: true;
+          opacity: 0;
+        "
+
+        animation__float="
+          property: position;
+          from: -0.43 0.24 0.035;
+          to: -0.37 0.32 0.055;
+          dur: 2200;
+          dir: alternate;
+          loop: indefinite;
+          easing: easeInOutSine;
+        "
+      ></a-sphere>
+
+
+      <a-sphere
+        class="particle"
+        radius="0.006"
+        position="-0.32 -0.20 0.035"
+
+        material="
+          shader: flat;
+          color: #ffffff;
+          transparent: true;
+          opacity: 0;
+        "
+
+        animation__float="
+          property: position;
+          from: -0.32 -0.20 0.035;
+          to: -0.28 -0.12 0.045;
+          dur: 1900;
+          dir: alternate;
+          loop: indefinite;
+          easing: easeInOutSine;
+        "
+      ></a-sphere>
+
+
+      <a-sphere
+        class="particle"
+        radius="0.008"
+        position="0.42 0.21 0.035"
+
+        material="
+          shader: flat;
+          color: #ffffff;
+          transparent: true;
+          opacity: 0;
+        "
+
+        animation__float="
+          property: position;
+          from: 0.42 0.21 0.035;
+          to: 0.48 0.30 0.055;
+          dur: 2100;
+          dir: alternate;
+          loop: indefinite;
+          easing: easeInOutSine;
+        "
+      ></a-sphere>
+
+
+      <a-sphere
+        class="particle"
+        radius="0.005"
+        position="0.39 -0.23 0.035"
+
+        material="
+          shader: flat;
+          color: #ffffff;
+          transparent: true;
+          opacity: 0;
+        "
+
+        animation__float="
+          property: position;
+          from: 0.39 -0.23 0.035;
+          to: 0.34 -0.15 0.045;
+          dur: 1700;
+          dir: alternate;
+          loop: indefinite;
+          easing: easeInOutSine;
+        "
+      ></a-sphere>
+
+
+      <a-sphere
+        class="particle"
+        radius="0.004"
+        position="0.06 0.28 0.035"
+
+        material="
+          shader: flat;
+          color: #ffffff;
+          transparent: true;
+          opacity: 0;
+        "
+
+        animation__float="
+          property: position;
+          from: 0.06 0.28 0.035;
+          to: 0.01 0.35 0.055;
+          dur: 2400;
+          dir: alternate;
+          loop: indefinite;
+          easing: easeInOutSine;
+        "
+      ></a-sphere>
+
+
+      <!-- =======================================
+           KITE 1 — ESCAPES ABOVE THE POSTER
+      ======================================== -->
+
+      <a-plane
+        class="kite"
+
+        width="0.055"
+        height="0.055"
+
+        rotation="0 0 45"
+
+        position="-0.12 0.36 0.07"
+
+        material="
+          shader: flat;
+          color: #ffffff;
+          transparent: true;
+          opacity: 0;
+        "
+
+        animation__escape="
+          property: position;
+          from: -0.12 0.28 0.07;
+          to: -0.28 0.65 0.12;
+          dur: 1500;
+          easing: easeOutCubic;
+          startEvents: kiteBurst;
+        "
+
+        animation__rotate="
+          property: rotation;
+          from: 0 0 45;
+          to: 0 0 135;
+          dur: 1500;
+          easing: easeOutCubic;
+          startEvents: kiteBurst;
+        "
+
+        animation__fade="
+          property: material.opacity;
+          from: 0;
+          to: 1;
+          dur: 350;
+          startEvents: kiteBurst;
+        "
+      ></a-plane>
+
+
+      <!-- =======================================
+           KITE 2
+      ======================================== -->
+
+      <a-plane
+        class="kite"
+
+        width="0.04"
+        height="0.04"
+
+        rotation="0 0 45"
+
+        position="0.28 0.34 0.07"
+
+        material="
+          shader: flat;
+          color: #ffffff;
+          transparent: true;
+          opacity: 0;
+        "
+
+        animation__escape="
+          property: position;
+          from: 0.28 0.30 0.07;
+          to: 0.48 0.55 0.12;
+          dur: 1700;
+          easing: easeOutCubic;
+          startEvents: kiteBurst;
+        "
+
+        animation__rotate="
+          property: rotation;
+          from: 0 0 45;
+          to: 0 0 -45;
+          dur: 1700;
+          easing: easeOutCubic;
+          startEvents: kiteBurst;
+        "
+
+        animation__fade="
+          property: material.opacity;
+          from: 0;
+          to: 0.9;
+          dur: 400;
+          startEvents: kiteBurst;
+        "
+      ></a-plane>
+
+
+      <!-- =======================================
+           KITE 3
+      ======================================== -->
+
+      <a-plane
+        class="kite"
+
+        width="0.032"
+        height="0.032"
+
+        rotation="0 0 45"
+
+        position="0.05 0.33 0.075"
+
+        material="
+          shader: flat;
+          color: #ffffff;
+          transparent: true;
+          opacity: 0;
+        "
+
+        animation__escape="
+          property: position;
+          from: 0.05 0.30 0.075;
+          to: 0.08 0.67 0.13;
+          dur: 1900;
+          easing: easeOutCubic;
+          startEvents: kiteBurst;
+        "
+
+        animation__rotate="
+          property: rotation;
+          from: 0 0 45;
+          to: 0 0 210;
+          dur: 1900;
+          easing: easeOutCubic;
+          startEvents: kiteBurst;
+        "
+
+        animation__fade="
+          property: material.opacity;
+          from: 0;
+          to: 0.75;
+          dur: 450;
+          startEvents: kiteBurst;
+        "
+      ></a-plane>
+
+
+    </a-entity>
 
   </a-scene>
 
 
   <script>
 
-
     const scene =
       document.querySelector("a-scene");
-
 
     const startButton =
       document.querySelector("#start");
 
-
     const intro =
       document.querySelector("#intro");
-
 
     const loading =
       document.querySelector("#loading");
 
-
     const scanning =
       document.querySelector("#scanning");
-
 
     const found =
       document.querySelector("#found");
 
+    const flash =
+      document.querySelector("#flash");
 
     const video =
       document.querySelector("#film");
 
+    const target =
+      document.querySelector("#posterTarget");
 
     const arVideo =
       document.querySelector("#arVideo");
 
+    const scanLine =
+      document.querySelector("#scanLine");
 
-    const target =
-      document.querySelector("#posterTarget");
+    const burstRing =
+      document.querySelector("#burstRing");
+
+    const particles =
+      document.querySelectorAll(".particle");
+
+    const kites =
+      document.querySelectorAll(".kite");
 
 
+    let tracked = false;
     let fadeTimer = null;
-
     let fadeAnimation = null;
 
 
-    /* ----------------------------------
-       VIDEO OPACITY
-    ---------------------------------- */
-
+    /* =========================================
+       OPACITY
+    ========================================= */
 
     function setVideoOpacity(value) {
 
@@ -378,115 +665,169 @@
         "material",
         material
       );
-
     }
 
 
-    /* ----------------------------------
-       FADE VIDEO IN
-    ---------------------------------- */
+    function setEntityOpacity(entity, value) {
 
+      const material =
+        entity.getAttribute("material");
+
+      material.opacity = value;
+
+      entity.setAttribute(
+        "material",
+        material
+      );
+    }
+
+
+    /* =========================================
+       HARD RESET OF EFFECTS
+    ========================================= */
+
+    function resetEffects() {
+
+      if (fadeTimer) {
+        clearTimeout(fadeTimer);
+        fadeTimer = null;
+      }
+
+      if (fadeAnimation) {
+        cancelAnimationFrame(fadeAnimation);
+        fadeAnimation = null;
+      }
+
+      setVideoOpacity(0);
+
+      setEntityOpacity(scanLine, 0);
+      setEntityOpacity(burstRing, 0);
+
+      particles.forEach(
+        p => setEntityOpacity(p, 0)
+      );
+
+      kites.forEach(
+        kite => setEntityOpacity(kite, 0)
+      );
+
+      video.pause();
+      video.currentTime = 0;
+    }
+
+
+    /* =========================================
+       FULL-SCREEN FLASH
+    ========================================= */
+
+    function flashScreen() {
+
+      flash.animate(
+        [
+          {
+            opacity: 0
+          },
+          {
+            opacity: 0.22
+          },
+          {
+            opacity: 0
+          }
+        ],
+        {
+          duration: 420,
+          easing: "ease-out"
+        }
+      );
+    }
+
+
+    /* =========================================
+       FADE VIDEO
+    ========================================= */
 
     function fadeVideoIn() {
 
-      if (fadeAnimation) {
-
-        cancelAnimationFrame(
-          fadeAnimation
-        );
-
-      }
-
-
-      const startTime =
+      const start =
         performance.now();
 
-
-      const duration = 1500;
+      const duration =
+        1000;
 
 
       function animate() {
 
-        const elapsed =
-          performance.now() - startTime;
+        if (!tracked) {
+          return;
+        }
 
+        const elapsed =
+          performance.now() - start;
 
         const progress =
-          Math.min(elapsed / duration, 1);
-
-
-        // Smooth ease-in
+          Math.min(
+            elapsed / duration,
+            1
+          );
 
         const eased =
-          progress * progress *
+          progress *
+          progress *
           (3 - 2 * progress);
 
-
         setVideoOpacity(eased);
-
 
         if (progress < 1) {
 
           fadeAnimation =
-            requestAnimationFrame(animate);
+            requestAnimationFrame(
+              animate
+            );
 
         }
-
       }
-
 
       animate();
-
     }
 
 
-    /* ----------------------------------
-       RESET VIDEO
-    ---------------------------------- */
+    /* =========================================
+       PARTICLES
+    ========================================= */
 
+    function showParticles() {
 
-    function resetVideo() {
+      particles.forEach(
+        (particle, index) => {
 
-      if (fadeTimer) {
+          setTimeout(
+            () => {
 
-        clearTimeout(fadeTimer);
+              if (tracked) {
+                setEntityOpacity(
+                  particle,
+                  0.7
+                );
+              }
 
-        fadeTimer = null;
+            },
+            index * 80
+          );
 
-      }
-
-
-      if (fadeAnimation) {
-
-        cancelAnimationFrame(
-          fadeAnimation
-        );
-
-        fadeAnimation = null;
-
-      }
-
-
-      video.pause();
-
-      video.currentTime = 0;
-
-      setVideoOpacity(0);
-
+        }
+      );
     }
 
 
-    /* ----------------------------------
-       START AR
-    ---------------------------------- */
-
+    /* =========================================
+       START
+    ========================================= */
 
     startButton.addEventListener(
       "click",
       async () => {
 
         intro.style.display = "none";
-
         loading.style.display = "flex";
 
 
@@ -500,14 +841,11 @@
 
           await mindar.start();
 
-
           loading.style.display = "none";
 
           scanning.style.display = "block";
 
-        }
-
-        catch (error) {
+        } catch (error) {
 
           console.error(error);
 
@@ -520,18 +858,19 @@
     );
 
 
-    /* ----------------------------------
-       POSTER FOUND
-    ---------------------------------- */
-
+    /* =========================================
+       TARGET FOUND
+    ========================================= */
 
     target.addEventListener(
       "targetFound",
       () => {
 
-        console.log(
-          "POSTER FOUND"
-        );
+        if (tracked) {
+          return;
+        }
+
+        tracked = true;
 
 
         scanning.style.display = "none";
@@ -539,91 +878,139 @@
         found.style.display = "block";
 
 
-        setTimeout(() => {
-
-          found.style.display = "none";
-
-        }, 1200);
-
-
-        /*
-          Start the actual video immediately.
-
-          BUT keep it invisible.
-
-          The camera therefore continues
-          showing the original poster.
-        */
-
-
-        setVideoOpacity(0);
-
-
-        video.currentTime = 0;
-
-
-        video.play().catch(
-          error => {
-
-            console.log(
-              "Video playback:",
-              error
-            );
-
-          }
+        setTimeout(
+          () => {
+            found.style.display = "none";
+          },
+          900
         );
 
 
-        /*
-          Wait approximately 2 seconds.
+        /* -------------------------------
+           1. START VIDEO INVISIBLY
+        -------------------------------- */
 
-          By this point the video has
-          moved past the black opening.
+        video.currentTime = 0;
 
-          Then reveal it.
-        */
+        setVideoOpacity(0);
+
+        video.play().catch(
+          err => console.log(err)
+        );
 
 
-        fadeTimer = setTimeout(
+        /* -------------------------------
+           2. SCAN SWEEP
+        -------------------------------- */
+
+        setEntityOpacity(
+          scanLine,
+          0
+        );
+
+        scanLine.emit(
+          "scanStart"
+        );
+
+
+        /* -------------------------------
+           3. FLASH
+        -------------------------------- */
+
+        setTimeout(
           () => {
 
-            fadeVideoIn();
+            if (!tracked) return;
+
+            flashScreen();
+
+            burstRing.emit(
+              "burstStart"
+            );
 
           },
-          2000
+          550
+        );
+
+
+        /* -------------------------------
+           4. VIDEO BECOMES ALIVE
+        -------------------------------- */
+
+        fadeTimer =
+          setTimeout(
+            () => {
+
+              if (!tracked) return;
+
+              fadeVideoIn();
+
+            },
+            1800
+          );
+
+
+        /* -------------------------------
+           5. PARTICLES
+        -------------------------------- */
+
+        setTimeout(
+          () => {
+
+            if (!tracked) return;
+
+            showParticles();
+
+          },
+          900
+        );
+
+
+        /* -------------------------------
+           6. KITES ESCAPE
+        -------------------------------- */
+
+        setTimeout(
+          () => {
+
+            if (!tracked) return;
+
+            kites.forEach(
+              kite => {
+                kite.emit("kiteBurst");
+              }
+            );
+
+          },
+          1250
         );
 
       }
     );
 
 
-    /* ----------------------------------
-       POSTER LOST
-    ---------------------------------- */
-
+    /* =========================================
+       TARGET LOST
+    ========================================= */
 
     target.addEventListener(
       "targetLost",
       () => {
 
-        console.log(
-          "POSTER LOST"
-        );
+        tracked = false;
 
+        scanning.style.display =
+          "block";
 
-        scanning.style.display = "block";
+        found.style.display =
+          "none";
 
-        found.style.display = "none";
-
-
-        resetVideo();
+        resetEffects();
 
       }
     );
 
-
   </script>
-
 
 </body>
 
