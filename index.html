@@ -2,7 +2,6 @@
 <html lang="en">
 
 <head>
-
   <meta charset="UTF-8">
 
   <meta
@@ -13,12 +12,9 @@
   <title>AR Experience</title>
 
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
-
   <style>
-
     * {
       box-sizing: border-box;
     }
@@ -30,165 +26,111 @@
       font-family: Arial, sans-serif;
     }
 
-
     /* INTRO */
-
     #intro {
-
       position: fixed;
       inset: 0;
-
       z-index: 10000;
 
       display: flex;
       flex-direction: column;
-
       align-items: center;
       justify-content: center;
 
       padding: 30px;
-
       text-align: center;
 
       color: white;
       background: black;
-
     }
-
 
     #intro h1 {
-
       margin: 0 0 12px;
-
       font-size: 28px;
       font-weight: 600;
-
     }
-
 
     #intro p {
-
       max-width: 320px;
-
       margin: 0 0 28px;
-
       line-height: 1.5;
-
       font-size: 16px;
-
       opacity: 0.75;
-
     }
-
 
     #start {
-
       padding: 15px 28px;
-
       border: none;
-
       border-radius: 999px;
-
       background: white;
       color: black;
-
       font-size: 16px;
       font-weight: 600;
-
+      cursor: pointer;
     }
 
-
     /* LOADING */
-
     #loading {
-
       position: fixed;
       inset: 0;
-
       z-index: 9500;
 
       display: none;
-
       align-items: center;
       justify-content: center;
 
       color: white;
       background: black;
-
       font-size: 16px;
-
     }
 
-
     /* SCANNING */
-
     #scanning {
-
       position: fixed;
-
       z-index: 9000;
 
       left: 50%;
       bottom: 50px;
-
       transform: translateX(-50%);
 
       padding: 12px 20px;
-
       border-radius: 999px;
 
       background: rgba(0, 0, 0, 0.7);
-
       color: white;
 
       font-size: 15px;
-
       white-space: nowrap;
 
       display: none;
-
     }
 
-
     /* FOUND */
-
     #found {
-
       position: fixed;
-
       z-index: 9000;
 
       left: 50%;
       bottom: 50px;
-
       transform: translateX(-50%);
 
       padding: 10px 18px;
-
       border-radius: 999px;
 
       background: rgba(0, 0, 0, 0.65);
-
       color: white;
 
       font-size: 14px;
-
       display: none;
-
     }
-
   </style>
-
 </head>
 
 
 <body>
 
-
   <!-- INTRO -->
-
   <div id="intro">
-
     <h1>AR Experience</h1>
 
     <p>
@@ -199,48 +141,50 @@
     <button id="start">
       Start Experience
     </button>
-
   </div>
 
 
   <!-- LOADING -->
-
   <div id="loading">
     Starting camera...
   </div>
 
 
   <!-- SCANNING -->
-
   <div id="scanning">
     Point your camera at the poster
   </div>
 
 
   <!-- FOUND -->
-
   <div id="found">
     ✓ Poster detected
   </div>
 
 
+  <!--
+    IMPORTANT:
+    This scene structure is intentionally kept close
+    to the working V3. Do not add fullscreen CSS to
+    a-scene or the camera feed can break.
+  -->
   <a-scene
 
-  mindar-image="
-    imageTargetSrc: ./targets.mind;
+    mindar-image="
+      imageTargetSrc: ./targets.mind;
 
-    autoStart: false;
+      autoStart: false;
 
-    uiLoading: no;
-    uiScanning: no;
-    uiError: yes;
+      uiLoading: no;
+      uiScanning: no;
+      uiError: yes;
 
-    warmupTolerance: 3;
-    missTolerance: 5;
+      warmupTolerance: 3;
+      missTolerance: 5;
 
-    filterMinCF: 0.01;
-    filterBeta: 10000;
-  "
+      filterMinCF: 0.01;
+      filterBeta: 10000;
+    "
 
     color-space="sRGB"
 
@@ -252,54 +196,131 @@
     vr-mode-ui="enabled: false"
 
     device-orientation-permission-ui="enabled: false"
-
   >
 
+
+    <!-- ==================================================
+         ASSETS
+    ================================================== -->
 
     <a-assets>
 
       <video
-
         id="film"
-
         src="./film-web.mp4"
-
         loop
-
         playsinline
         webkit-playsinline
-
         crossorigin="anonymous"
-
+        preload="auto"
       ></video>
+
+      <!-- Put these three files beside index.html -->
+      <img id="kiteOrange" src="./kite-orange.png">
+      <img id="kiteBlue" src="./kite-blue.png">
+      <img id="kiteWhite" src="./kite-white.png">
 
     </a-assets>
 
 
+    <!-- ==================================================
+         CAMERA
+    ================================================== -->
+
     <a-camera
-
       position="0 0 0"
-
       look-controls="enabled: false"
-
     ></a-camera>
 
 
-    <!-- POSTER TARGET -->
+    <!-- ==================================================
+         POSTER TARGET
+    ================================================== -->
 
     <a-entity
       id="posterTarget"
       mindar-image-target="targetIndex: 0"
     >
 
-      <a-video
 
+      <!-- =================================================
+           KITE 1
+           Starts over the printed kite.
+      ================================================= -->
+
+      <a-image
+        id="kiteOrangeAR"
+        src="#kiteOrange"
+
+        width="0.055"
+        height="0.055"
+
+        position="-0.207 0.165 0.025"
+        rotation="0 0 45"
+
+        material="
+          shader: flat;
+          transparent: true;
+          opacity: 0;
+        "
+      ></a-image>
+
+
+      <!-- =================================================
+           KITE 2
+      ================================================= -->
+
+      <a-image
+        id="kiteWhiteAR"
+        src="#kiteWhite"
+
+        width="0.052"
+        height="0.052"
+
+        position="-0.105 0.190 0.025"
+        rotation="0 0 45"
+
+        material="
+          shader: flat;
+          transparent: true;
+          opacity: 0;
+        "
+      ></a-image>
+
+
+      <!-- =================================================
+           KITE 3
+      ================================================= -->
+
+      <a-image
+        id="kiteBlueAR"
+        src="#kiteBlue"
+
+        width="0.048"
+        height="0.048"
+
+        position="0.135 0.165 0.025"
+        rotation="0 0 45"
+
+        material="
+          shader: flat;
+          transparent: true;
+          opacity: 0;
+        "
+      ></a-image>
+
+
+      <!-- =================================================
+           EXISTING WORKING VIDEO
+           DO NOT CHANGE THESE VALUES
+      ================================================= -->
+
+      <a-video
         id="arVideo"
 
         src="#film"
 
         width="1"
-
         height="0.5625"
 
         position="0 0 0.01"
@@ -309,8 +330,8 @@
           transparent: true;
           opacity: 0;
         "
-
       ></a-video>
+
 
     </a-entity>
 
@@ -320,52 +341,74 @@
 
   <script>
 
+    /* ====================================================
+       DOM REFERENCES
+    ==================================================== */
 
     const scene =
       document.querySelector("a-scene");
 
-
     const startButton =
       document.querySelector("#start");
-
 
     const intro =
       document.querySelector("#intro");
 
-
     const loading =
       document.querySelector("#loading");
-
 
     const scanning =
       document.querySelector("#scanning");
 
-
     const found =
       document.querySelector("#found");
-
 
     const video =
       document.querySelector("#film");
 
-
     const arVideo =
       document.querySelector("#arVideo");
-
 
     const target =
       document.querySelector("#posterTarget");
 
 
+    /* ====================================================
+       KITE REFERENCES
+    ==================================================== */
+
+    const kiteOrange =
+      document.querySelector("#kiteOrangeAR");
+
+    const kiteWhite =
+      document.querySelector("#kiteWhiteAR");
+
+    const kiteBlue =
+      document.querySelector("#kiteBlueAR");
+
+    const kites = [
+      kiteOrange,
+      kiteWhite,
+      kiteBlue
+    ];
+
+
+    /* ====================================================
+       STATE
+    ==================================================== */
+
+    let tracked = false;
+
     let fadeTimer = null;
 
     let fadeAnimation = null;
 
+    let kiteTimers = [];
 
-    /* ----------------------------------
+
+    /* ====================================================
        VIDEO OPACITY
-    ---------------------------------- */
-
+    ==================================================== */
 
     function setVideoOpacity(value) {
 
@@ -378,14 +421,340 @@
         "material",
         material
       );
+    }
+
+
+    /* ====================================================
+       GENERIC MATERIAL OPACITY
+    ==================================================== */
+
+    function setEntityOpacity(
+      entity,
+      value
+    ) {
+
+      const material =
+        entity.getAttribute("material");
+
+      material.opacity = value;
+
+      entity.setAttribute(
+        "material",
+        material
+      );
+    }
+
+
+    /* ====================================================
+       RESET KITES
+    ==================================================== */
+
+    function resetKites() {
+
+      /* Cancel any pending kite timers. */
+      kiteTimers.forEach(
+        timer => clearTimeout(timer)
+      );
+
+      kiteTimers = [];
+
+
+      /* Put every kite back at its
+         original printed location. */
+
+      kiteOrange.object3D.position.set(
+        -0.207,
+        0.165,
+        0.025
+      );
+
+      kiteWhite.object3D.position.set(
+        -0.105,
+        0.190,
+        0.025
+      );
+
+      kiteBlue.object3D.position.set(
+        0.135,
+        0.165,
+        0.025
+      );
+
+
+      /* Reset rotation. */
+
+      kiteOrange.object3D.rotation.z =
+        Math.PI / 4;
+
+      kiteWhite.object3D.rotation.z =
+        Math.PI / 4;
+
+      kiteBlue.object3D.rotation.z =
+        Math.PI / 4;
+
+
+      /* Make them invisible. */
+
+      kites.forEach(
+        kite => {
+
+          setEntityOpacity(
+            kite,
+            0
+          );
+
+        }
+      );
 
     }
 
 
-    /* ----------------------------------
-       FADE VIDEO IN
-    ---------------------------------- */
+    /* ====================================================
+       ANIMATE ONE KITE
+    ==================================================== */
 
+    function animateKite(
+      kite,
+      startX,
+      startY,
+      endX,
+      endY,
+      duration,
+      delay
+    ) {
+
+      const timer =
+        setTimeout(
+          () => {
+
+            /* If the poster has already been lost,
+               don't start the animation. */
+
+            if (!tracked) {
+              return;
+            }
+
+
+            const startTime =
+              performance.now();
+
+
+            const startZ =
+              0.025;
+
+            const endZ =
+              0.14;
+
+
+            function frame() {
+
+              if (!tracked) {
+                return;
+              }
+
+
+              const progress =
+                Math.min(
+                  (
+                    performance.now() -
+                    startTime
+                  ) / duration,
+                  1
+                );
+
+
+              /* Ease-out cubic. */
+
+              const eased =
+                1 -
+                Math.pow(
+                  1 - progress,
+                  3
+                );
+
+
+              /* A small upward arc makes the movement
+                 feel physical instead of linear. */
+
+              const arc =
+                Math.sin(
+                  progress * Math.PI
+                ) * 0.055;
+
+
+              kite.object3D.position.x =
+                startX +
+                (
+                  endX -
+                  startX
+                ) * eased;
+
+
+              kite.object3D.position.y =
+                startY +
+                (
+                  endY -
+                  startY
+                ) * eased +
+                arc;
+
+
+              /* Move slightly toward the camera. */
+
+              kite.object3D.position.z =
+                startZ +
+                (
+                  endZ -
+                  startZ
+                ) * eased;
+
+
+              /* Rotate as it flies. */
+
+              kite.object3D.rotation.z =
+                Math.PI / 4 +
+                progress *
+                Math.PI *
+                2.35;
+
+
+              /* Fade in very quickly,
+                 stay visible,
+                 then fade out. */
+
+              let opacity = 0;
+
+
+              if (progress < 0.08) {
+
+                opacity =
+                  progress / 0.08;
+
+              }
+              else if (progress < 0.72) {
+
+                opacity = 1;
+
+              }
+              else {
+
+                opacity =
+                  1 -
+                  (
+                    progress - 0.72
+                  ) / 0.28;
+
+              }
+
+
+              setEntityOpacity(
+                kite,
+                opacity
+              );
+
+
+              if (progress < 1) {
+
+                requestAnimationFrame(
+                  frame
+                );
+
+              }
+            }
+
+
+            requestAnimationFrame(
+              frame
+            );
+
+          },
+          delay
+        );
+
+
+      kiteTimers.push(
+        timer
+      );
+    }
+
+
+    /* ====================================================
+       LAUNCH ALL KITES
+    ==================================================== */
+
+    function launchKites() {
+
+      resetKites();
+
+
+      /*
+       * Orange:
+       * starts on the left side of the poster
+       * and escapes toward the upper-left.
+       */
+
+      animateKite(
+        kiteOrange,
+
+        -0.207,
+        0.165,
+
+        -0.46,
+        0.60,
+
+        1700,
+
+        0
+      );
+
+
+      /*
+       * White:
+       * starts near the upper-middle
+       * and rises almost vertically.
+       */
+
+      animateKite(
+        kiteWhite,
+
+        -0.105,
+        0.190,
+
+        -0.02,
+        0.68,
+
+        1850,
+
+        180
+      );
+
+
+      /*
+       * Blue:
+       * starts toward the right
+       * and escapes upper-right.
+       */
+
+      animateKite(
+        kiteBlue,
+
+        0.135,
+        0.165,
+
+        0.46,
+        0.58,
+
+        1950,
+
+        320
+      );
+
+    }
+
+
+    /* ====================================================
+       FADE VIDEO IN
+    ==================================================== */
 
     function fadeVideoIn() {
 
@@ -402,36 +771,50 @@
         performance.now();
 
 
-      const duration = 1500;
+      const duration =
+        1500;
 
 
       function animate() {
 
+        if (!tracked) {
+          return;
+        }
+
+
         const elapsed =
-          performance.now() - startTime;
+          performance.now() -
+          startTime;
 
 
         const progress =
-          Math.min(elapsed / duration, 1);
+          Math.min(
+            elapsed / duration,
+            1
+          );
 
 
-        // Smooth ease-in
+        /* Smooth ease-in/out. */
 
         const eased =
-          progress * progress *
+          progress *
+          progress *
           (3 - 2 * progress);
 
 
-        setVideoOpacity(eased);
+        setVideoOpacity(
+          eased
+        );
 
 
         if (progress < 1) {
 
           fadeAnimation =
-            requestAnimationFrame(animate);
+            requestAnimationFrame(
+              animate
+            );
 
         }
-
       }
 
 
@@ -440,19 +823,19 @@
     }
 
 
-    /* ----------------------------------
+    /* ====================================================
        RESET VIDEO
-    ---------------------------------- */
-
+    ==================================================== */
 
     function resetVideo() {
 
       if (fadeTimer) {
 
-        clearTimeout(fadeTimer);
+        clearTimeout(
+          fadeTimer
+        );
 
         fadeTimer = null;
-
       }
 
 
@@ -463,7 +846,6 @@
         );
 
         fadeAnimation = null;
-
       }
 
 
@@ -476,18 +858,19 @@
     }
 
 
-    /* ----------------------------------
+    /* ====================================================
        START AR
-    ---------------------------------- */
-
+    ==================================================== */
 
     startButton.addEventListener(
       "click",
       async () => {
 
-        intro.style.display = "none";
+        intro.style.display =
+          "none";
 
-        loading.style.display = "flex";
+        loading.style.display =
+          "flex";
 
 
         const mindar =
@@ -501,15 +884,21 @@
           await mindar.start();
 
 
-          loading.style.display = "none";
+          loading.style.display =
+            "none";
 
-          scanning.style.display = "block";
+
+          scanning.style.display =
+            "block";
 
         }
 
         catch (error) {
 
-          console.error(error);
+          console.error(
+            error
+          );
+
 
           loading.innerHTML =
             "Unable to access the camera.";
@@ -520,10 +909,9 @@
     );
 
 
-    /* ----------------------------------
+    /* ====================================================
        POSTER FOUND
-    ---------------------------------- */
-
+    ==================================================== */
 
     target.addEventListener(
       "targetFound",
@@ -534,30 +922,51 @@
         );
 
 
-        scanning.style.display = "none";
+        /* Ignore duplicate events while
+           this target is already active. */
 
-        found.style.display = "block";
-
-
-        setTimeout(() => {
-
-          found.style.display = "none";
-
-        }, 1200);
+        if (tracked) {
+          return;
+        }
 
 
-        /*
-          Start the actual video immediately.
+        tracked = true;
 
-          BUT keep it invisible.
 
-          The camera therefore continues
-          showing the original poster.
-        */
+        scanning.style.display =
+          "none";
 
+
+        found.style.display =
+          "block";
+
+
+        setTimeout(
+          () => {
+
+            found.style.display =
+              "none";
+
+          },
+          1200
+        );
+
+
+        /* -----------------------------------------------
+           RESET THE EFFECT STATE
+        ------------------------------------------------ */
+
+        resetKites();
 
         setVideoOpacity(0);
 
+
+        /* -----------------------------------------------
+           START VIDEO IMMEDIATELY.
+
+           It stays invisible while the
+           original poster remains visible.
+        ------------------------------------------------ */
 
         video.currentTime = 0;
 
@@ -574,33 +983,45 @@
         );
 
 
-        /*
-          Wait approximately 2 seconds.
+        /* -----------------------------------------------
+           KITES ESCAPE.
 
-          By this point the video has
-          moved past the black opening.
+           They begin while the printed poster
+           is still visible.
+        ------------------------------------------------ */
 
-          Then reveal it.
-        */
+        launchKites();
 
 
-        fadeTimer = setTimeout(
-          () => {
+        /* -----------------------------------------------
+           VIDEO TRANSITION.
 
-            fadeVideoIn();
+           The 2-second delay is preserved
+           from your working V3.
+        ------------------------------------------------ */
 
-          },
-          2000
-        );
+        fadeTimer =
+          setTimeout(
+            () => {
+
+              if (!tracked) {
+                return;
+              }
+
+
+              fadeVideoIn();
+
+            },
+            2000
+          );
 
       }
     );
 
 
-    /* ----------------------------------
+    /* ====================================================
        POSTER LOST
-    ---------------------------------- */
-
+    ==================================================== */
 
     target.addEventListener(
       "targetLost",
@@ -611,19 +1032,34 @@
         );
 
 
-        scanning.style.display = "block";
+        tracked = false;
 
-        found.style.display = "none";
+
+        scanning.style.display =
+          "block";
+
+
+        found.style.display =
+          "none";
 
 
         resetVideo();
+
+        resetKites();
 
       }
     );
 
 
-  </script>
+    /* ====================================================
+       INITIAL STATE
+    ==================================================== */
 
+    resetKites();
+
+    setVideoOpacity(0);
+
+  </script>
 
 </body>
 
