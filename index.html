@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+
   <meta charset="UTF-8">
 
   <meta
@@ -11,10 +12,14 @@
 
   <title>Living Poster AR</title>
 
+  <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+
+  <!-- MindAR -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
+
     * {
       box-sizing: border-box;
     }
@@ -29,17 +34,26 @@
       font-family: Arial, sans-serif;
     }
 
+    /* IMPORTANT:
+       Do NOT position/style a-scene here.
+       MindAR controls the camera canvas.
+    */
+
     #intro {
+
       position: fixed;
       inset: 0;
+
       z-index: 10000;
 
       display: flex;
       flex-direction: column;
+
       align-items: center;
       justify-content: center;
 
       padding: 30px;
+
       text-align: center;
 
       color: white;
@@ -47,36 +61,52 @@
     }
 
     #intro h1 {
+
       margin: 0 0 12px;
+
       font-size: 28px;
+
       font-weight: 600;
     }
 
     #intro p {
+
       max-width: 320px;
+
       margin: 0 0 28px;
+
       line-height: 1.5;
+
       font-size: 16px;
+
       opacity: 0.75;
     }
 
     #start {
+
       padding: 15px 28px;
+
       border: none;
       border-radius: 999px;
+
       background: white;
       color: black;
+
       font-size: 16px;
       font-weight: 600;
+
       cursor: pointer;
     }
 
     #loading {
+
       position: fixed;
       inset: 0;
+
       z-index: 9500;
 
       display: none;
+
       align-items: center;
       justify-content: center;
 
@@ -86,52 +116,74 @@
       font-size: 16px;
     }
 
-    #scanning,
-    #found {
+    #scanning {
+
       position: fixed;
+
       z-index: 9000;
+
       left: 50%;
       bottom: 45px;
 
       transform: translateX(-50%);
 
       padding: 11px 18px;
+
       border-radius: 999px;
 
       background: rgba(0, 0, 0, 0.68);
+
       color: white;
 
       font-size: 14px;
+
       white-space: nowrap;
 
       display: none;
+
       pointer-events: none;
     }
 
-    /* little screen flash */
-    #flash {
-      position: fixed;
-      inset: 0;
-      z-index: 8999;
+    #found {
 
-      background: white;
-      opacity: 0;
+      position: fixed;
+
+      z-index: 9000;
+
+      left: 50%;
+      bottom: 45px;
+
+      transform: translateX(-50%);
+
+      padding: 10px 17px;
+
+      border-radius: 999px;
+
+      background: rgba(0, 0, 0, 0.65);
+
+      color: white;
+
+      font-size: 14px;
+
+      display: none;
+
       pointer-events: none;
     }
 
-    /* AR scene itself should remain completely transparent */
-    a-scene {
-      position: fixed;
-      inset: 0;
-    }
   </style>
+
 </head>
 
 
 <body>
 
-  <!-- INTRO -->
+
+  <!-- =====================================================
+       INTRO
+  ====================================================== -->
+
   <div id="intro">
+
     <h1>AR Experience</h1>
 
     <p>
@@ -142,27 +194,35 @@
     <button id="start">
       Start Experience
     </button>
+
   </div>
 
 
-  <!-- LOADING -->
+  <!-- =====================================================
+       LOADING
+  ====================================================== -->
+
   <div id="loading">
     Starting camera...
   </div>
 
 
-  <!-- UI -->
+  <!-- =====================================================
+       SCANNING
+  ====================================================== -->
+
   <div id="scanning">
     Point your camera at the poster
   </div>
 
+
+  <!-- =====================================================
+       DETECTED
+  ====================================================== -->
+
   <div id="found">
     ✓ Poster detected
   </div>
-
-
-  <!-- FLASH -->
-  <div id="flash"></div>
 
 
   <a-scene
@@ -189,50 +249,86 @@
     "
 
     vr-mode-ui="enabled: false"
+
     device-orientation-permission-ui="enabled: false"
+
   >
 
+
+    <!-- =================================================
+         ASSETS
+    ================================================== -->
 
     <a-assets>
 
       <video
+
         id="film"
+
         src="./film-web.mp4"
+
         loop
+
         playsinline
+
         webkit-playsinline
+
         crossorigin="anonymous"
+
         preload="auto"
+
       ></video>
+
+
+      <!-- KITE SVGs -->
+
+      <img
+        id="kiteWhite"
+        src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,0 100,50 50,100 0,50' fill='none' stroke='white' stroke-width='7'/%3E%3Cpath d='M50 100 C50 120 35 130 25 140' fill='none' stroke='white' stroke-width='3'/%3E%3C/svg%3E"
+      >
 
     </a-assets>
 
 
+    <!-- =================================================
+         CAMERA
+    ================================================== -->
+
     <a-camera
+
       position="0 0 0"
+
       look-controls="enabled: false"
+
     ></a-camera>
 
 
-    <!-- =========================================
-         EVERYTHING BELOW TRACKS WITH THE POSTER
-    ========================================== -->
+    <!-- =================================================
+         POSTER TARGET
+    ================================================== -->
 
     <a-entity
+
       id="posterTarget"
+
       mindar-image-target="targetIndex: 0"
+
     >
 
 
-      <!-- =======================================
-           THE ORIGINAL WORKING VIDEO
-      ======================================== -->
+      <!-- =================================================
+           THE ORIGINAL V3 VIDEO
+           DO NOT CHANGE THIS GEOMETRY
+      ================================================== -->
 
       <a-video
+
         id="arVideo"
+
         src="#film"
 
         width="1"
+
         height="0.5625"
 
         position="0 0 0.01"
@@ -242,20 +338,25 @@
           transparent: true;
           opacity: 0;
         "
+
       ></a-video>
 
 
-      <!-- =======================================
-           SCAN LINE
-      ======================================== -->
+      <!-- =================================================
+           EDGE GLOW
+      ================================================== -->
+
+      <!-- TOP -->
 
       <a-plane
-        id="scanLine"
 
-        width="1.20"
-        height="0.008"
+        id="edgeTop"
 
-        position="0 -0.34 0.025"
+        width="1.02"
+
+        height="0.006"
+
+        position="0 0.286 0.032"
 
         material="
           shader: flat;
@@ -264,38 +365,20 @@
           opacity: 0;
         "
 
-        animation__scan="
-          property: position;
-          from: 0 -0.34 0.025;
-          to: 0 0.34 0.025;
-          dur: 750;
-          easing: easeInOutSine;
-          startEvents: scanStart;
-        "
-
-        animation__fade="
-          property: material.opacity;
-          from: 0.0;
-          to: 0.9;
-          dur: 180;
-          dir: alternate;
-          loop: 2;
-          startEvents: scanStart;
-        "
       ></a-plane>
 
 
-      <!-- =======================================
-           GLOW RING / BURST
-      ======================================== -->
+      <!-- BOTTOM -->
 
-      <a-ring
-        id="burstRing"
+      <a-plane
 
-        radius-inner="0.11"
-        radius-outer="0.125"
+        id="edgeBottom"
 
-        position="0 0 0.026"
+        width="1.02"
+
+        height="0.006"
+
+        position="0 -0.286 0.032"
 
         material="
           shader: flat;
@@ -304,58 +387,112 @@
           opacity: 0;
         "
 
-        animation__burstScale="
-          property: scale;
-          from: 0.4 0.4 0.4;
-          to: 2.8 2.8 2.8;
-          dur: 950;
-          easing: easeOutCubic;
-          startEvents: burstStart;
+      ></a-plane>
+
+
+      <!-- LEFT -->
+
+      <a-plane
+
+        id="edgeLeft"
+
+        width="0.006"
+
+        height="0.562"
+
+        position="-0.5 0 0.032"
+
+        material="
+          shader: flat;
+          color: #ffffff;
+          transparent: true;
+          opacity: 0;
         "
 
-        animation__burstOpacity="
-          property: material.opacity;
-          from: 0.9;
-          to: 0;
-          dur: 950;
-          easing: easeOutCubic;
-          startEvents: burstStart;
+      ></a-plane>
+
+
+      <!-- RIGHT -->
+
+      <a-plane
+
+        id="edgeRight"
+
+        width="0.006"
+
+        height="0.562"
+
+        position="0.5 0 0.032"
+
+        material="
+          shader: flat;
+          color: #ffffff;
+          transparent: true;
+          opacity: 0;
         "
+
+      ></a-plane>
+
+
+      <!-- =================================================
+           ENERGY SWEEP
+      ================================================== -->
+
+      <a-plane
+
+        id="energySweep"
+
+        width="1.08"
+
+        height="0.012"
+
+        position="0 -0.286 0.04"
+
+        material="
+          shader: flat;
+          color: #ffffff;
+          transparent: true;
+          opacity: 0;
+        "
+
+      ></a-plane>
+
+
+      <!-- =================================================
+           CENTRAL SHOCKWAVE
+      ================================================== -->
+
+      <a-ring
+
+        id="shockwave"
+
+        radius-inner="0.035"
+
+        radius-outer="0.048"
+
+        position="0 0 0.045"
+
+        material="
+          shader: flat;
+          color: #ffffff;
+          transparent: true;
+          opacity: 0;
+        "
+
       ></a-ring>
 
 
-      <!-- =======================================
-           FLOATING LIGHT PARTICLES
-      ======================================== -->
+      <!-- SECOND SHOCKWAVE -->
 
-      <a-sphere
-        class="particle"
-        radius="0.009"
-        position="-0.43 0.24 0.035"
+      <a-ring
 
-        material="
-          shader: flat;
-          color: #ffffff;
-          transparent: true;
-          opacity: 0;
-        "
+        id="shockwave2"
 
-        animation__float="
-          property: position;
-          from: -0.43 0.24 0.035;
-          to: -0.37 0.32 0.055;
-          dur: 2200;
-          dir: alternate;
-          loop: indefinite;
-          easing: easeInOutSine;
-        "
-      ></a-sphere>
+        radius-inner="0.025"
 
+        radius-outer="0.035"
 
-      <a-sphere
-        class="particle"
-        radius="0.006"
-        position="-0.32 -0.20 0.035"
+        position="0 0 0.044"
 
         material="
           shader: flat;
@@ -364,420 +501,1110 @@
           opacity: 0;
         "
 
-        animation__float="
-          property: position;
-          from: -0.32 -0.20 0.035;
-          to: -0.28 -0.12 0.045;
-          dur: 1900;
-          dir: alternate;
-          loop: indefinite;
-          easing: easeInOutSine;
-        "
-      ></a-sphere>
+      ></a-ring>
 
 
-      <a-sphere
-        class="particle"
-        radius="0.008"
-        position="0.42 0.21 0.035"
+      <!-- =================================================
+           KITES / OBJECTS ESCAPING THE POSTER
+      ================================================== -->
 
-        material="
-          shader: flat;
-          color: #ffffff;
-          transparent: true;
-          opacity: 0;
-        "
+      <a-image
 
-        animation__float="
-          property: position;
-          from: 0.42 0.21 0.035;
-          to: 0.48 0.30 0.055;
-          dur: 2100;
-          dir: alternate;
-          loop: indefinite;
-          easing: easeInOutSine;
-        "
-      ></a-sphere>
+        id="kite1"
 
+        src="#kiteWhite"
 
-      <a-sphere
-        class="particle"
-        radius="0.005"
-        position="0.39 -0.23 0.035"
+        width="0.055"
+
+        height="0.055"
+
+        position="-0.22 0.28 0.065"
+
+        rotation="0 0 45"
 
         material="
-          shader: flat;
-          color: #ffffff;
           transparent: true;
           opacity: 0;
+          shader: flat;
         "
 
-        animation__float="
-          property: position;
-          from: 0.39 -0.23 0.035;
-          to: 0.34 -0.15 0.045;
-          dur: 1700;
-          dir: alternate;
-          loop: indefinite;
-          easing: easeInOutSine;
-        "
-      ></a-sphere>
+      ></a-image>
 
+
+      <a-image
+
+        id="kite2"
+
+        src="#kiteWhite"
+
+        width="0.042"
+
+        height="0.042"
+
+        position="0.05 0.285 0.065"
+
+        rotation="0 0 45"
+
+        material="
+          transparent: true;
+          opacity: 0;
+          shader: flat;
+        "
+
+      ></a-image>
+
+
+      <a-image
+
+        id="kite3"
+
+        src="#kiteWhite"
+
+        width="0.034"
+
+        height="0.034"
+
+        position="0.30 0.27 0.065"
+
+        rotation="0 0 45"
+
+        material="
+          transparent: true;
+          opacity: 0;
+          shader: flat;
+        "
+
+      ></a-image>
+
+
+      <!-- =================================================
+           PARTICLE FIELD
+
+           Small but numerous. These are deliberately
+           subtle and are used as atmosphere, not as
+           the main effect.
+      ================================================== -->
 
       <a-sphere
         class="particle"
         radius="0.004"
-        position="0.06 0.28 0.035"
+        position="-0.44 0.18 0.05"
+        material="shader: flat; color: white; transparent: true; opacity: 0;"
+      ></a-sphere>
 
-        material="
-          shader: flat;
-          color: #ffffff;
-          transparent: true;
-          opacity: 0;
-        "
+      <a-sphere
+        class="particle"
+        radius="0.003"
+        position="-0.34 0.22 0.05"
+        material="shader: flat; color: white; transparent: true; opacity: 0;"
+      ></a-sphere>
 
-        animation__float="
-          property: position;
-          from: 0.06 0.28 0.035;
-          to: 0.01 0.35 0.055;
-          dur: 2400;
-          dir: alternate;
-          loop: indefinite;
-          easing: easeInOutSine;
-        "
+      <a-sphere
+        class="particle"
+        radius="0.005"
+        position="-0.25 0.18 0.05"
+        material="shader: flat; color: white; transparent: true; opacity: 0;"
+      ></a-sphere>
+
+      <a-sphere
+        class="particle"
+        radius="0.003"
+        position="-0.12 0.25 0.05"
+        material="shader: flat; color: white; transparent: true; opacity: 0;"
+      ></a-sphere>
+
+      <a-sphere
+        class="particle"
+        radius="0.004"
+        position="0.08 0.24 0.05"
+        material="shader: flat; color: white; transparent: true; opacity: 0;"
+      ></a-sphere>
+
+      <a-sphere
+        class="particle"
+        radius="0.003"
+        position="0.21 0.21 0.05"
+        material="shader: flat; color: white; transparent: true; opacity: 0;"
+      ></a-sphere>
+
+      <a-sphere
+        class="particle"
+        radius="0.004"
+        position="0.39 0.18 0.05"
+        material="shader: flat; color: white; transparent: true; opacity: 0;"
       ></a-sphere>
 
 
-      <!-- =======================================
-           KITE 1 — ESCAPES ABOVE THE POSTER
-      ======================================== -->
-
-      <a-plane
-        class="kite"
-
-        width="0.055"
-        height="0.055"
-
-        rotation="0 0 45"
-
-        position="-0.12 0.36 0.07"
-
-        material="
-          shader: flat;
-          color: #ffffff;
-          transparent: true;
-          opacity: 0;
-        "
-
-        animation__escape="
-          property: position;
-          from: -0.12 0.28 0.07;
-          to: -0.28 0.65 0.12;
-          dur: 1500;
-          easing: easeOutCubic;
-          startEvents: kiteBurst;
-        "
-
-        animation__rotate="
-          property: rotation;
-          from: 0 0 45;
-          to: 0 0 135;
-          dur: 1500;
-          easing: easeOutCubic;
-          startEvents: kiteBurst;
-        "
-
-        animation__fade="
-          property: material.opacity;
-          from: 0;
-          to: 1;
-          dur: 350;
-          startEvents: kiteBurst;
-        "
-      ></a-plane>
-
-
-      <!-- =======================================
-           KITE 2
-      ======================================== -->
-
-      <a-plane
-        class="kite"
-
-        width="0.04"
-        height="0.04"
-
-        rotation="0 0 45"
-
-        position="0.28 0.34 0.07"
-
-        material="
-          shader: flat;
-          color: #ffffff;
-          transparent: true;
-          opacity: 0;
-        "
-
-        animation__escape="
-          property: position;
-          from: 0.28 0.30 0.07;
-          to: 0.48 0.55 0.12;
-          dur: 1700;
-          easing: easeOutCubic;
-          startEvents: kiteBurst;
-        "
-
-        animation__rotate="
-          property: rotation;
-          from: 0 0 45;
-          to: 0 0 -45;
-          dur: 1700;
-          easing: easeOutCubic;
-          startEvents: kiteBurst;
-        "
-
-        animation__fade="
-          property: material.opacity;
-          from: 0;
-          to: 0.9;
-          dur: 400;
-          startEvents: kiteBurst;
-        "
-      ></a-plane>
-
-
-      <!-- =======================================
-           KITE 3
-      ======================================== -->
-
-      <a-plane
-        class="kite"
-
-        width="0.032"
-        height="0.032"
-
-        rotation="0 0 45"
-
-        position="0.05 0.33 0.075"
-
-        material="
-          shader: flat;
-          color: #ffffff;
-          transparent: true;
-          opacity: 0;
-        "
-
-        animation__escape="
-          property: position;
-          from: 0.05 0.30 0.075;
-          to: 0.08 0.67 0.13;
-          dur: 1900;
-          easing: easeOutCubic;
-          startEvents: kiteBurst;
-        "
-
-        animation__rotate="
-          property: rotation;
-          from: 0 0 45;
-          to: 0 0 210;
-          dur: 1900;
-          easing: easeOutCubic;
-          startEvents: kiteBurst;
-        "
-
-        animation__fade="
-          property: material.opacity;
-          from: 0;
-          to: 0.75;
-          dur: 450;
-          startEvents: kiteBurst;
-        "
-      ></a-plane>
-
-
     </a-entity>
+
 
   </a-scene>
 
 
   <script>
 
+
+    /* =====================================================
+       DOM
+    ====================================================== */
+
     const scene =
       document.querySelector("a-scene");
+
 
     const startButton =
       document.querySelector("#start");
 
+
     const intro =
       document.querySelector("#intro");
+
 
     const loading =
       document.querySelector("#loading");
 
+
     const scanning =
       document.querySelector("#scanning");
+
 
     const found =
       document.querySelector("#found");
 
-    const flash =
-      document.querySelector("#flash");
 
     const video =
       document.querySelector("#film");
 
+
     const target =
       document.querySelector("#posterTarget");
+
 
     const arVideo =
       document.querySelector("#arVideo");
 
-    const scanLine =
-      document.querySelector("#scanLine");
 
-    const burstRing =
-      document.querySelector("#burstRing");
+    const energySweep =
+      document.querySelector("#energySweep");
+
+
+    const shockwave =
+      document.querySelector("#shockwave");
+
+
+    const shockwave2 =
+      document.querySelector("#shockwave2");
+
+
+    const edges = [
+
+      document.querySelector("#edgeTop"),
+
+      document.querySelector("#edgeRight"),
+
+      document.querySelector("#edgeBottom"),
+
+      document.querySelector("#edgeLeft")
+
+    ];
+
+
+    const kites = [
+
+      document.querySelector("#kite1"),
+
+      document.querySelector("#kite2"),
+
+      document.querySelector("#kite3")
+
+    ];
+
 
     const particles =
-      document.querySelectorAll(".particle");
-
-    const kites =
-      document.querySelectorAll(".kite");
-
-
-    let tracked = false;
-    let fadeTimer = null;
-    let fadeAnimation = null;
-
-
-    /* =========================================
-       OPACITY
-    ========================================= */
-
-    function setVideoOpacity(value) {
-
-      const material =
-        arVideo.getAttribute("material");
-
-      material.opacity = value;
-
-      arVideo.setAttribute(
-        "material",
-        material
+      document.querySelectorAll(
+        ".particle"
       );
-    }
 
 
-    function setEntityOpacity(entity, value) {
+    let tracked =
+      false;
+
+
+    let fadeTimer =
+      null;
+
+
+    let fadeAnimation =
+      null;
+
+
+    /* =====================================================
+       MATERIAL OPACITY
+    ====================================================== */
+
+    function setOpacity(
+      entity,
+      value
+    ) {
 
       const material =
-        entity.getAttribute("material");
+        entity.getAttribute(
+          "material"
+        );
 
-      material.opacity = value;
+
+      material.opacity =
+        value;
+
 
       entity.setAttribute(
         "material",
         material
       );
+
     }
 
 
-    /* =========================================
-       HARD RESET OF EFFECTS
-    ========================================= */
+    /* =====================================================
+       VIDEO OPACITY
+    ====================================================== */
+
+    function setVideoOpacity(
+      value
+    ) {
+
+      setOpacity(
+        arVideo,
+        value
+      );
+
+    }
+
+
+    /* =====================================================
+       RESET EVERYTHING
+    ====================================================== */
 
     function resetEffects() {
 
+
       if (fadeTimer) {
-        clearTimeout(fadeTimer);
+
+        clearTimeout(
+          fadeTimer
+        );
+
         fadeTimer = null;
+
       }
+
 
       if (fadeAnimation) {
-        cancelAnimationFrame(fadeAnimation);
+
+        cancelAnimationFrame(
+          fadeAnimation
+        );
+
         fadeAnimation = null;
+
       }
 
-      setVideoOpacity(0);
 
-      setEntityOpacity(scanLine, 0);
-      setEntityOpacity(burstRing, 0);
-
-      particles.forEach(
-        p => setEntityOpacity(p, 0)
+      setVideoOpacity(
+        0
       );
+
+
+      edges.forEach(
+        edge => {
+
+          setOpacity(
+            edge,
+            0
+          );
+
+        }
+      );
+
+
+      setOpacity(
+        energySweep,
+        0
+      );
+
+
+      setOpacity(
+        shockwave,
+        0
+      );
+
+
+      setOpacity(
+        shockwave2,
+        0
+      );
+
 
       kites.forEach(
-        kite => setEntityOpacity(kite, 0)
+        kite => {
+
+          setOpacity(
+            kite,
+            0
+          );
+
+        }
       );
 
+
+      particles.forEach(
+        particle => {
+
+          setOpacity(
+            particle,
+            0
+          );
+
+        }
+      );
+
+
       video.pause();
-      video.currentTime = 0;
+
+      video.currentTime =
+        0;
+
     }
 
 
-    /* =========================================
-       FULL-SCREEN FLASH
-    ========================================= */
+    /* =====================================================
+       EDGE IGNITION
+    ====================================================== */
 
-    function flashScreen() {
+    function igniteEdges() {
 
-      flash.animate(
+
+      edges.forEach(
+        (edge, index) => {
+
+
+          setTimeout(
+            () => {
+
+              if (!tracked) {
+                return;
+              }
+
+
+              setOpacity(
+                edge,
+                0.95
+              );
+
+
+              edge.animate(
+                [
+                  {
+                    opacity: 0
+                  },
+                  {
+                    opacity: 1
+                  },
+                  {
+                    opacity: 0.65
+                  },
+                  {
+                    opacity: 0
+                  }
+                ],
+                {
+                  duration: 900,
+                  easing:
+                    "cubic-bezier(.16,1,.3,1)"
+                }
+              );
+
+
+            },
+            index * 180
+          );
+
+        }
+      );
+
+    }
+
+
+    /* =====================================================
+       ENERGY SWEEP
+    ====================================================== */
+
+    function runEnergySweep() {
+
+
+      setOpacity(
+        energySweep,
+        0
+      );
+
+
+      energySweep.setAttribute(
+        "position",
+        "0 -0.286 0.04"
+      );
+
+
+      setOpacity(
+        energySweep,
+        0.95
+      );
+
+
+      energySweep.animate(
         [
           {
-            opacity: 0
-          },
-          {
-            opacity: 0.22
-          },
-          {
+            object3D: {
+              position: {
+                x: 0,
+                y: -0.286,
+                z: 0.04
+              }
+            },
+
             opacity: 0
           }
         ],
         {
-          duration: 420,
-          easing: "ease-out"
+          duration: 1
         }
       );
-    }
 
 
-    /* =========================================
-       FADE VIDEO
-    ========================================= */
+      const startY =
+        -0.286;
 
-    function fadeVideoIn() {
+      const endY =
+        0.286;
+
 
       const start =
         performance.now();
 
+
       const duration =
-        1000;
+        950;
 
 
-      function animate() {
+      function frame() {
+
 
         if (!tracked) {
           return;
         }
 
-        const elapsed =
-          performance.now() - start;
 
         const progress =
           Math.min(
-            elapsed / duration,
+            (
+              performance.now()
+              - start
+            ) / duration,
             1
           );
+
 
         const eased =
           progress *
           progress *
           (3 - 2 * progress);
 
-        setVideoOpacity(eased);
+
+        energySweep.object3D.position.y =
+          startY +
+          (
+            endY -
+            startY
+          ) *
+          eased;
+
 
         if (progress < 1) {
+
+          requestAnimationFrame(
+            frame
+          );
+
+        } else {
+
+          setOpacity(
+            energySweep,
+            0
+          );
+
+        }
+
+      }
+
+
+      requestAnimationFrame(
+        frame
+      );
+
+    }
+
+
+    /* =====================================================
+       SHOCKWAVE
+    ====================================================== */
+
+    function runShockwave() {
+
+
+      [shockwave, shockwave2]
+        .forEach(
+          (ring, index) => {
+
+
+            setOpacity(
+              ring,
+              0.9
+            );
+
+
+            ring.object3D.scale.set(
+              0.15,
+              0.15,
+              0.15
+            );
+
+
+            ring.animate(
+              [
+                {
+                  opacity: 0.9,
+                  transform:
+                    "scale(0.15)"
+                },
+                {
+                  opacity: 0,
+                  transform:
+                    "scale(6)"
+                }
+              ],
+              {
+                duration:
+                  850 +
+                  index * 220,
+
+                easing:
+                  "cubic-bezier(.16,1,.3,1)"
+              }
+            );
+
+
+            const start =
+              performance.now();
+
+
+            const duration =
+              850 +
+              index * 220;
+
+
+            function frame() {
+
+
+              if (!tracked) {
+                return;
+              }
+
+
+              const progress =
+                Math.min(
+                  (
+                    performance.now()
+                    - start
+                  ) / duration,
+                  1
+                );
+
+
+              const scale =
+                0.15 +
+                (
+                  6 -
+                  0.15
+                ) *
+                (
+                  progress *
+                  progress *
+                  (3 - 2 * progress)
+                );
+
+
+              ring.object3D.scale.set(
+                scale,
+                scale,
+                scale
+              );
+
+
+              const opacity =
+                0.9 *
+                (1 - progress);
+
+
+              setOpacity(
+                ring,
+                opacity
+              );
+
+
+              if (
+                progress < 1
+              ) {
+
+                requestAnimationFrame(
+                  frame
+                );
+
+              }
+
+            }
+
+
+            requestAnimationFrame(
+              frame
+            );
+
+          }
+        );
+
+    }
+
+
+    /* =====================================================
+       PARTICLE BURST
+    ====================================================== */
+
+    function runParticleBurst() {
+
+
+      particles.forEach(
+        (particle, index) => {
+
+
+          setTimeout(
+            () => {
+
+
+              if (!tracked) {
+                return;
+              }
+
+
+              setOpacity(
+                particle,
+                0.0
+              );
+
+
+              particle.animate(
+                [
+                  {
+                    opacity: 0
+                  },
+                  {
+                    opacity: 0.9
+                  },
+                  {
+                    opacity: 0
+                  }
+                ],
+                {
+                  duration:
+                    1200 +
+                    index * 130,
+
+                  easing:
+                    "ease-out"
+                }
+              );
+
+
+              const original =
+                particle.object3D
+                  .position.clone();
+
+
+              particle.object3D
+                .position.copy(
+                  original
+                );
+
+
+              const targetX =
+                original.x +
+                (
+                  Math.random()
+                  - 0.5
+                ) *
+                0.28;
+
+
+              const targetY =
+                original.y +
+                0.18 +
+                Math.random() *
+                0.20;
+
+
+              const start =
+                performance.now();
+
+
+              const duration =
+                800 +
+                index * 90;
+
+
+              function frame() {
+
+
+                if (!tracked) {
+                  return;
+                }
+
+
+                const progress =
+                  Math.min(
+                    (
+                      performance.now()
+                      - start
+                    ) /
+                    duration,
+                    1
+                  );
+
+
+                const eased =
+                  1 -
+                  Math.pow(
+                    1 - progress,
+                    3
+                  );
+
+
+                particle.object3D
+                  .position.x =
+                    original.x +
+                    (
+                      targetX -
+                      original.x
+                    ) *
+                    eased;
+
+
+                particle.object3D
+                  .position.y =
+                    original.y +
+                    (
+                      targetY -
+                      original.y
+                    ) *
+                    eased;
+
+
+                setOpacity(
+                  particle,
+                  progress < 0.75
+                    ? progress * 1.1
+                    : (1 - progress) * 4
+                );
+
+
+                if (
+                  progress < 1
+                ) {
+
+                  requestAnimationFrame(
+                    frame
+                  );
+
+                }
+
+              }
+
+
+              requestAnimationFrame(
+                frame
+              );
+
+
+            },
+            index * 65
+          );
+
+        }
+      );
+
+    }
+
+
+    /* =====================================================
+       KITE ESCAPE
+    ====================================================== */
+
+    function runKites() {
+
+
+      const paths = [
+
+        {
+          x: -0.22,
+          y: 0.28,
+          tx: -0.43,
+          ty: 0.62,
+          duration: 1500
+        },
+
+        {
+          x: 0.05,
+          y: 0.285,
+          tx: 0.16,
+          ty: 0.69,
+          duration: 1750
+        },
+
+        {
+          x: 0.30,
+          y: 0.27,
+          tx: 0.51,
+          ty: 0.57,
+          duration: 1900
+        }
+
+      ];
+
+
+      kites.forEach(
+        (kite, index) => {
+
+
+          const path =
+            paths[index];
+
+
+          kite.object3D
+            .position.set(
+              path.x,
+              path.y,
+              0.065
+            );
+
+
+          setOpacity(
+            kite,
+            0
+          );
+
+
+          const startDelay =
+            index * 140;
+
+
+          setTimeout(
+            () => {
+
+
+              if (!tracked) {
+                return;
+              }
+
+
+              const start =
+                performance.now();
+
+
+              const duration =
+                path.duration;
+
+
+              function frame() {
+
+
+                if (!tracked) {
+                  return;
+                }
+
+
+                const progress =
+                  Math.min(
+                    (
+                      performance.now()
+                      - start
+                    ) /
+                    duration,
+                    1
+                  );
+
+
+                const eased =
+                  1 -
+                  Math.pow(
+                    1 - progress,
+                    3
+                  );
+
+
+                kite.object3D
+                  .position.x =
+                    path.x +
+                    (
+                      path.tx -
+                      path.x
+                    ) *
+                    eased;
+
+
+                kite.object3D
+                  .position.y =
+                    path.y +
+                    (
+                      path.ty -
+                      path.y
+                    ) *
+                    eased;
+
+
+                kite.object3D
+                  .position.z =
+                    0.065 +
+                    progress *
+                    0.13;
+
+
+                kite.object3D
+                  .rotation.z =
+                    THREE.MathUtils.degToRad(
+                      45 +
+                      progress *
+                      260
+                    );
+
+
+                let opacity;
+
+
+                if (
+                  progress < 0.12
+                ) {
+
+                  opacity =
+                    progress /
+                    0.12;
+
+                } else if (
+                  progress < 0.72
+                ) {
+
+                  opacity =
+                    1;
+
+                } else {
+
+                  opacity =
+                    1 -
+                    (
+                      progress -
+                      0.72
+                    ) / 0.28;
+
+                }
+
+
+                setOpacity(
+                  kite,
+                  opacity
+                );
+
+
+                if (
+                  progress < 1
+                ) {
+
+                  requestAnimationFrame(
+                    frame
+                  );
+
+                }
+
+              }
+
+
+              requestAnimationFrame(
+                frame
+              );
+
+
+            },
+            startDelay
+          );
+
+        }
+      );
+
+    }
+
+
+    /* =====================================================
+       VIDEO FADE
+    ====================================================== */
+
+    function fadeVideoIn() {
+
+
+      const start =
+        performance.now();
+
+
+      const duration =
+        1100;
+
+
+      function animate() {
+
+
+        if (!tracked) {
+          return;
+        }
+
+
+        const progress =
+          Math.min(
+            (
+              performance.now()
+              - start
+            ) /
+            duration,
+            1
+          );
+
+
+        const eased =
+          progress *
+          progress *
+          (3 - 2 * progress);
+
+
+        setVideoOpacity(
+          eased
+        );
+
+
+        if (
+          progress < 1
+        ) {
 
           fadeAnimation =
             requestAnimationFrame(
@@ -785,50 +1612,30 @@
             );
 
         }
+
       }
 
+
       animate();
+
     }
 
 
-    /* =========================================
-       PARTICLES
-    ========================================= */
-
-    function showParticles() {
-
-      particles.forEach(
-        (particle, index) => {
-
-          setTimeout(
-            () => {
-
-              if (tracked) {
-                setEntityOpacity(
-                  particle,
-                  0.7
-                );
-              }
-
-            },
-            index * 80
-          );
-
-        }
-      );
-    }
-
-
-    /* =========================================
-       START
-    ========================================= */
+    /* =====================================================
+       START EXPERIENCE
+    ====================================================== */
 
     startButton.addEventListener(
       "click",
       async () => {
 
-        intro.style.display = "none";
-        loading.style.display = "flex";
+
+        intro.style.display =
+          "none";
+
+
+        loading.style.display =
+          "flex";
 
 
         const mindar =
@@ -839,15 +1646,25 @@
 
         try {
 
+
           await mindar.start();
 
-          loading.style.display = "none";
 
-          scanning.style.display = "block";
+          loading.style.display =
+            "none";
+
+
+          scanning.style.display =
+            "block";
+
 
         } catch (error) {
 
-          console.error(error);
+
+          console.error(
+            error
+          );
+
 
           loading.innerHTML =
             "Unable to access the camera.";
@@ -858,90 +1675,169 @@
     );
 
 
-    /* =========================================
-       TARGET FOUND
-    ========================================= */
+    /* =====================================================
+       POSTER FOUND
+    ====================================================== */
 
     target.addEventListener(
       "targetFound",
       () => {
 
+
         if (tracked) {
           return;
         }
 
+
         tracked = true;
 
 
-        scanning.style.display = "none";
+        scanning.style.display =
+          "none";
 
-        found.style.display = "block";
+
+        found.style.display =
+          "block";
 
 
         setTimeout(
           () => {
-            found.style.display = "none";
+
+            found.style.display =
+              "none";
+
           },
-          900
+          800
         );
 
 
-        /* -------------------------------
-           1. START VIDEO INVISIBLY
-        -------------------------------- */
+        /* -----------------------------------------------
+           START FROM A COMPLETELY CLEAN STATE
+        ------------------------------------------------ */
 
-        video.currentTime = 0;
-
-        setVideoOpacity(0);
-
-        video.play().catch(
-          err => console.log(err)
-        );
-
-
-        /* -------------------------------
-           2. SCAN SWEEP
-        -------------------------------- */
-
-        setEntityOpacity(
-          scanLine,
+        setVideoOpacity(
           0
         );
 
-        scanLine.emit(
-          "scanStart"
+
+        video.currentTime =
+          0;
+
+
+        /* -----------------------------------------------
+           VIDEO STARTS IMMEDIATELY,
+           BUT REMAINS INVISIBLE
+        ------------------------------------------------ */
+
+        video.play().catch(
+          error => {
+
+            console.log(
+              "Video playback:",
+              error
+            );
+
+          }
         );
 
 
-        /* -------------------------------
-           3. FLASH
-        -------------------------------- */
+        /* -----------------------------------------------
+           1. EDGE IGNITION
+        ------------------------------------------------ */
+
+        igniteEdges();
+
+
+        /* -----------------------------------------------
+           2. ENERGY SWEEP
+        ------------------------------------------------ */
 
         setTimeout(
           () => {
 
-            if (!tracked) return;
+            if (!tracked) {
+              return;
+            }
 
-            flashScreen();
 
-            burstRing.emit(
-              "burstStart"
-            );
+            runEnergySweep();
 
           },
-          550
+          180
         );
 
 
-        /* -------------------------------
-           4. VIDEO BECOMES ALIVE
-        -------------------------------- */
+        /* -----------------------------------------------
+           3. SHOCKWAVE
+        ------------------------------------------------ */
+
+        setTimeout(
+          () => {
+
+            if (!tracked) {
+              return;
+            }
+
+
+            runShockwave();
+
+          },
+          650
+        );
+
+
+        /* -----------------------------------------------
+           4. PARTICLES
+        ------------------------------------------------ */
+
+        setTimeout(
+          () => {
+
+            if (!tracked) {
+              return;
+            }
+
+
+            runParticleBurst();
+
+          },
+          750
+        );
+
+
+        /* -----------------------------------------------
+           5. KITES ESCAPE
+        ------------------------------------------------ */
+
+        setTimeout(
+          () => {
+
+            if (!tracked) {
+              return;
+            }
+
+
+            runKites();
+
+          },
+          1050
+        );
+
+
+        /* -----------------------------------------------
+           6. VIDEO TRANSITION
+
+           YOUR EXISTING WORKING V3 TIMING.
+        ------------------------------------------------ */
 
         fadeTimer =
           setTimeout(
             () => {
 
-              if (!tracked) return;
+              if (!tracked) {
+                return;
+              }
+
 
               fadeVideoIn();
 
@@ -949,68 +1845,38 @@
             1800
           );
 
-
-        /* -------------------------------
-           5. PARTICLES
-        -------------------------------- */
-
-        setTimeout(
-          () => {
-
-            if (!tracked) return;
-
-            showParticles();
-
-          },
-          900
-        );
-
-
-        /* -------------------------------
-           6. KITES ESCAPE
-        -------------------------------- */
-
-        setTimeout(
-          () => {
-
-            if (!tracked) return;
-
-            kites.forEach(
-              kite => {
-                kite.emit("kiteBurst");
-              }
-            );
-
-          },
-          1250
-        );
-
       }
     );
 
 
-    /* =========================================
-       TARGET LOST
-    ========================================= */
+    /* =====================================================
+       POSTER LOST
+    ====================================================== */
 
     target.addEventListener(
       "targetLost",
       () => {
 
+
         tracked = false;
+
 
         scanning.style.display =
           "block";
 
+
         found.style.display =
           "none";
+
 
         resetEffects();
 
       }
     );
 
+
   </script>
+
 
 </body>
 
