@@ -226,13 +226,21 @@
 
   <a-scene
 
-    mindar-image="
-      imageTargetSrc: ./targets.mind;
-      autoStart: false;
-      uiLoading: no;
-      uiScanning: no;
-      uiError: yes;
-    "
+  mindar-image="
+    imageTargetSrc: ./targets.mind;
+
+    autoStart: false;
+
+    uiLoading: no;
+    uiScanning: no;
+    uiError: yes;
+
+    warmupTolerance: 3;
+    missTolerance: 5;
+
+    filterMinCF: 0.01;
+    filterBeta: 10000;
+  "
 
     color-space="sRGB"
 
