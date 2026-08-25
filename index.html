@@ -10,7 +10,8 @@
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
   >
 
-  <title>AR Experience</title>
+  <title>Living Poster AR</title>
+
 
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 
@@ -30,8 +31,6 @@
       font-family: Arial, sans-serif;
     }
 
-
-    /* INTRO */
 
     #intro {
 
@@ -61,6 +60,7 @@
       margin: 0 0 12px;
 
       font-size: 28px;
+
       font-weight: 600;
 
     }
@@ -90,19 +90,20 @@
       border-radius: 999px;
 
       background: white;
+
       color: black;
 
       font-size: 16px;
+
       font-weight: 600;
 
     }
 
 
-    /* LOADING */
-
     #loading {
 
       position: fixed;
+
       inset: 0;
 
       z-index: 9500;
@@ -110,17 +111,17 @@
       display: none;
 
       align-items: center;
+
       justify-content: center;
 
       color: white;
+
       background: black;
 
       font-size: 16px;
 
     }
 
-
-    /* SCANNING */
 
     #scanning {
 
@@ -129,6 +130,7 @@
       z-index: 9000;
 
       left: 50%;
+
       bottom: 50px;
 
       transform: translateX(-50%);
@@ -150,8 +152,6 @@
     }
 
 
-    /* FOUND */
-
     #found {
 
       position: fixed;
@@ -159,6 +159,7 @@
       z-index: 9000;
 
       left: 50%;
+
       bottom: 50px;
 
       transform: translateX(-50%);
@@ -179,13 +180,275 @@
 
   </style>
 
+
+  <script>
+
+    /*
+    =====================================================
+    LIVING POSTER SHADER
+    =====================================================
+
+    White areas in person-mask.png
+    = keep the original poster.
+
+    Black areas
+    = show the moving video.
+    */
+
+
+    AFRAME.registerShader("living-poster", {
+
+      schema: {
+
+        video: {
+          type: "selector"
+        },
+
+        poster: {
+          type: "selector"
+        },
+
+        mask: {
+          type: "selector"
+        },
+
+        opacity: {
+          type: "number",
+          default: 0
+        }
+
+      },
+
+
+      init: function (data) {
+
+        const video =
+          data.video;
+
+
+        const poster =
+          data.poster;
+
+
+        const mask =
+          data.mask;
+
+
+        /*
+        Video texture
+        */
+
+        const videoTexture =
+          new THREE.VideoTexture(video);
+
+        videoTexture.minFilter =
+          THREE.LinearFilter;
+
+        videoTexture.magFilter =
+          THREE.LinearFilter;
+
+        videoTexture.format =
+          THREE.RGBAFormat;
+
+
+        /*
+        Poster texture
+        */
+
+        const posterTexture =
+          new THREE.Texture(poster);
+
+        posterTexture.needsUpdate = true;
+
+
+        /*
+        Mask texture
+        */
+
+        const maskTexture =
+          new THREE.Texture(mask);
+
+        maskTexture.needsUpdate = true;
+
+
+        /*
+        Custom shader material
+        */
+
+        this.material =
+          new THREE.ShaderMaterial({
+
+            uniforms: {
+
+              uVideo: {
+                value: videoTexture
+              },
+
+              uPoster: {
+                value: posterTexture
+              },
+
+              uMask: {
+                value: maskTexture
+              },
+
+              uOpacity: {
+                value: 0
+              }
+
+            },
+
+
+            vertexShader: `
+
+              varying vec2 vUv;
+
+              void main() {
+
+                vUv = uv;
+
+                gl_Position =
+                  projectionMatrix *
+                  modelViewMatrix *
+                  vec4(position, 1.0);
+
+              }
+
+            `,
+
+
+            fragmentShader: `
+
+              uniform sampler2D uVideo;
+
+              uniform sampler2D uPoster;
+
+              uniform sampler2D uMask;
+
+              uniform float uOpacity;
+
+
+              varying vec2 vUv;
+
+
+              void main() {
+
+
+                vec4 videoColor =
+                  texture2D(
+                    uVideo,
+                    vUv
+                  );
+
+
+                vec4 posterColor =
+                  texture2D(
+                    uPoster,
+                    vUv
+                  );
+
+
+                float mask =
+                  texture2D(
+                    uMask,
+                    vUv
+                  ).r;
+
+
+                /*
+                White mask = poster.
+
+                Black mask = video.
+                */
+
+                vec4 result =
+                  mix(
+                    videoColor,
+                    posterColor,
+                    mask
+                  );
+
+
+                /*
+                Fade the AR layer in.
+                */
+
+                result.a =
+                  uOpacity;
+
+
+                gl_FragColor =
+                  result;
+
+              }
+
+            `,
+
+
+            transparent: true,
+
+            depthWrite: false
+
+          });
+
+      },
+
+
+      update: function (data) {
+
+        if (
+          this.material &&
+          this.material.uniforms
+        ) {
+
+          this.material.uniforms.uOpacity.value =
+            data.opacity;
+
+        }
+
+      },
+
+
+      tick: function () {
+
+        if (
+          this.material &&
+          this.material.uniforms
+        ) {
+
+          const video =
+            this.material
+              .uniforms
+              .uVideo
+              .value;
+
+
+          if (
+            video &&
+            video.readyState >= 2
+          ) {
+
+            this.material
+              .uniforms
+              .uVideo
+              .value
+              .needsUpdate = true;
+
+          }
+
+        }
+
+      }
+
+    });
+
+  </script>
+
 </head>
 
 
 <body>
 
-
-  <!-- INTRO -->
 
   <div id="intro">
 
@@ -203,21 +466,15 @@
   </div>
 
 
-  <!-- LOADING -->
-
   <div id="loading">
     Starting camera...
   </div>
 
 
-  <!-- SCANNING -->
-
   <div id="scanning">
     Point your camera at the poster
   </div>
 
-
-  <!-- FOUND -->
 
   <div id="found">
     ✓ Poster detected
@@ -250,6 +507,7 @@
 
     <a-assets>
 
+
       <video
 
         id="film"
@@ -259,11 +517,31 @@
         loop
 
         playsinline
+
         webkit-playsinline
 
         crossorigin="anonymous"
 
       ></video>
+
+
+      <img
+
+        id="poster"
+
+        src="./poster.png"
+
+      >
+
+
+      <img
+
+        id="personMask"
+
+        src="./person-mask.png"
+
+      >
+
 
     </a-assets>
 
@@ -277,18 +555,18 @@
     ></a-camera>
 
 
-    <!-- POSTER TARGET -->
-
     <a-entity
+
       id="posterTarget"
+
       mindar-image-target="targetIndex: 0"
+
     >
 
-      <a-video
 
-        id="arVideo"
+      <a-plane
 
-        src="#film"
+        id="livingPoster"
 
         width="1"
 
@@ -297,12 +575,15 @@
         position="0 0 0.01"
 
         material="
-          shader: flat;
-          transparent: true;
+          shader: living-poster;
+          video: #film;
+          poster: #poster;
+          mask: #personMask;
           opacity: 0;
         "
 
-      ></a-video>
+      ></a-plane>
+
 
     </a-entity>
 
@@ -341,86 +622,98 @@
       document.querySelector("#film");
 
 
-    const arVideo =
-      document.querySelector("#arVideo");
-
-
     const target =
       document.querySelector("#posterTarget");
 
 
+    const livingPoster =
+      document.querySelector("#livingPoster");
+
+
     let fadeTimer = null;
+
 
     let fadeAnimation = null;
 
 
-    /* ----------------------------------
-       VIDEO OPACITY
-    ---------------------------------- */
+    /*
+    ==============================================
+    SET OPACITY
+    ==============================================
+    */
 
 
-    function setVideoOpacity(value) {
+    function setOpacity(value) {
 
       const material =
-        arVideo.getAttribute("material");
+        livingPoster.components
+          .material
+          .material;
 
-      material.opacity = value;
 
-      arVideo.setAttribute(
-        "material",
+      if (
+        material &&
+        material.uniforms &&
+        material.uniforms.uOpacity
+      ) {
+
         material
-      );
+          .uniforms
+          .uOpacity
+          .value = value;
+
+      }
 
     }
 
 
-    /* ----------------------------------
-       FADE VIDEO IN
-    ---------------------------------- */
+    /*
+    ==============================================
+    FADE IN
+    ==============================================
+    */
 
 
-    function fadeVideoIn() {
-
-      if (fadeAnimation) {
-
-        cancelAnimationFrame(
-          fadeAnimation
-        );
-
-      }
-
+    function fadeIn() {
 
       const startTime =
         performance.now();
 
 
-      const duration = 1500;
+      const duration =
+        1500;
 
 
       function animate() {
 
+
         const elapsed =
-          performance.now() - startTime;
+          performance.now() -
+          startTime;
 
 
         const progress =
-          Math.min(elapsed / duration, 1);
+          Math.min(
+            elapsed / duration,
+            1
+          );
 
-
-        // Smooth ease-in
 
         const eased =
-          progress * progress *
+          progress *
+          progress *
           (3 - 2 * progress);
 
 
-        setVideoOpacity(eased);
+        setOpacity(eased);
 
 
         if (progress < 1) {
 
           fadeAnimation =
-            requestAnimationFrame(animate);
+            requestAnimationFrame(
+              animate
+            );
 
         }
 
@@ -432,18 +725,21 @@
     }
 
 
-    /* ----------------------------------
-       RESET VIDEO
-    ---------------------------------- */
+    /*
+    ==============================================
+    RESET
+    ==============================================
+    */
 
 
-    function resetVideo() {
+    function reset() {
+
 
       if (fadeTimer) {
 
-        clearTimeout(fadeTimer);
-
-        fadeTimer = null;
+        clearTimeout(
+          fadeTimer
+        );
 
       }
 
@@ -454,8 +750,6 @@
           fadeAnimation
         );
 
-        fadeAnimation = null;
-
       }
 
 
@@ -463,23 +757,30 @@
 
       video.currentTime = 0;
 
-      setVideoOpacity(0);
+
+      setOpacity(0);
 
     }
 
 
-    /* ----------------------------------
-       START AR
-    ---------------------------------- */
+    /*
+    ==============================================
+    START
+    ==============================================
+    */
 
 
     startButton.addEventListener(
       "click",
       async () => {
 
-        intro.style.display = "none";
 
-        loading.style.display = "flex";
+        intro.style.display =
+          "none";
+
+
+        loading.style.display =
+          "flex";
 
 
         const mindar =
@@ -490,18 +791,25 @@
 
         try {
 
+
           await mindar.start();
 
 
-          loading.style.display = "none";
+          loading.style.display =
+            "none";
 
-          scanning.style.display = "block";
+
+          scanning.style.display =
+            "block";
+
 
         }
 
         catch (error) {
 
+
           console.error(error);
+
 
           loading.innerHTML =
             "Unable to access the camera.";
@@ -512,44 +820,45 @@
     );
 
 
-    /* ----------------------------------
-       POSTER FOUND
-    ---------------------------------- */
+    /*
+    ==============================================
+    POSTER FOUND
+    ==============================================
+    */
 
 
     target.addEventListener(
       "targetFound",
       () => {
 
+
         console.log(
           "POSTER FOUND"
         );
 
 
-        scanning.style.display = "none";
+        scanning.style.display =
+          "none";
 
-        found.style.display = "block";
+
+        found.style.display =
+          "block";
 
 
-        setTimeout(() => {
+        setTimeout(
+          () => {
 
-          found.style.display = "none";
+            found.style.display =
+              "none";
 
-        }, 1200);
+          },
+          1200
+        );
 
 
         /*
-          Start the actual video immediately.
-
-          BUT keep it invisible.
-
-          The camera therefore continues
-          showing the original poster.
+        Start video from beginning.
         */
-
-
-        setVideoOpacity(0);
-
 
         video.currentTime = 0;
 
@@ -558,7 +867,7 @@
           error => {
 
             console.log(
-              "Video playback:",
+              "Playback error:",
               error
             );
 
@@ -567,48 +876,60 @@
 
 
         /*
-          Wait approximately 2 seconds.
-
-          By this point the video has
-          moved past the black opening.
-
-          Then reveal it.
+        Keep the AR layer invisible
+        for the first 2 seconds.
         */
 
+        setOpacity(0);
 
-        fadeTimer = setTimeout(
-          () => {
 
-            fadeVideoIn();
+        /*
+        Then reveal the living
+        poster effect.
+        */
 
-          },
-          2000
-        );
+        fadeTimer =
+          setTimeout(
+            () => {
+
+              fadeIn();
+
+            },
+            2000
+          );
+
 
       }
     );
 
 
-    /* ----------------------------------
-       POSTER LOST
-    ---------------------------------- */
+    /*
+    ==============================================
+    POSTER LOST
+    ==============================================
+    */
 
 
     target.addEventListener(
       "targetLost",
       () => {
 
+
         console.log(
           "POSTER LOST"
         );
 
 
-        scanning.style.display = "block";
+        scanning.style.display =
+          "block";
 
-        found.style.display = "none";
+
+        found.style.display =
+          "none";
 
 
-        resetVideo();
+        reset();
+
 
       }
     );
