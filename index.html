@@ -6,44 +6,176 @@
 
   <meta
     name="viewport"
-    content="width=device-width, initial-scale=1.0"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
   >
 
-  <title>Poster AR</title>
+  <title>AR Experience</title>
 
-  <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 
-  <!-- MindAR -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
 
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       overflow: hidden;
+      background: #000;
+      font-family: Arial, sans-serif;
     }
 
-    #start {
+
+    /* ---------- INTRO SCREEN ---------- */
+
+    #intro {
+
       position: fixed;
-      z-index: 9999;
+      inset: 0;
 
-      left: 50%;
-      top: 50%;
+      z-index: 10000;
 
-      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
 
-      padding: 16px 28px;
+      align-items: center;
+      justify-content: center;
 
-      font-size: 18px;
+      padding: 30px;
+
+      text-align: center;
+
+      color: white;
+      background: #000;
+
+    }
+
+
+    #intro h1 {
+
+      margin: 0 0 12px;
+
+      font-size: 28px;
+      font-weight: 600;
+
+    }
+
+
+    #intro p {
+
+      max-width: 320px;
+
+      margin: 0 0 28px;
+
+      line-height: 1.5;
+
+      font-size: 16px;
+
+      opacity: 0.75;
+
+    }
+
+
+    #start {
+
+      padding: 15px 28px;
 
       border: none;
-      border-radius: 12px;
+      border-radius: 999px;
 
       background: white;
       color: black;
 
+      font-size: 16px;
+      font-weight: 600;
+
       cursor: pointer;
+
+    }
+
+
+    /* ---------- SCANNING MESSAGE ---------- */
+
+    #scanning {
+
+      position: fixed;
+
+      z-index: 9000;
+
+      left: 50%;
+      bottom: 50px;
+
+      transform: translateX(-50%);
+
+      padding: 12px 20px;
+
+      border-radius: 999px;
+
+      background: rgba(0, 0, 0, 0.7);
+
+      color: white;
+
+      font-size: 15px;
+
+      white-space: nowrap;
+
+      display: none;
+
+    }
+
+
+    /* ---------- VIDEO FOUND MESSAGE ---------- */
+
+    #found {
+
+      position: fixed;
+
+      z-index: 9000;
+
+      left: 50%;
+      bottom: 50px;
+
+      transform: translateX(-50%);
+
+      padding: 10px 18px;
+
+      border-radius: 999px;
+
+      background: rgba(0, 0, 0, 0.65);
+
+      color: white;
+
+      font-size: 14px;
+
+      display: none;
+
+    }
+
+
+    /* ---------- LOADING ---------- */
+
+    #loading {
+
+      position: fixed;
+
+      inset: 0;
+
+      z-index: 9500;
+
+      display: none;
+
+      align-items: center;
+      justify-content: center;
+
+      color: white;
+
+      background: #000;
+
+      font-size: 16px;
+
     }
 
   </style>
@@ -53,18 +185,55 @@
 
 <body>
 
-  <button id="start">
-    Start AR
-  </button>
+
+  <!-- INTRO -->
+
+  <div id="intro">
+
+    <h1>AR Experience</h1>
+
+    <p>
+      Point your camera at the poster
+      to bring it to life.
+    </p>
+
+    <button id="start">
+      Start Experience
+    </button>
+
+  </div>
+
+
+  <!-- LOADING -->
+
+  <div id="loading">
+    Starting camera...
+  </div>
+
+
+  <!-- SCANNING -->
+
+  <div id="scanning">
+    Point your camera at the poster
+  </div>
+
+
+  <!-- FOUND -->
+
+  <div id="found">
+    ✓ Poster detected
+  </div>
 
 
   <a-scene
 
     mindar-image="
       imageTargetSrc: ./targets.mind;
+
       autoStart: false;
-      uiLoading: yes;
-      uiScanning: yes;
+
+      uiLoading: no;
+      uiScanning: no;
       uiError: yes;
     "
 
@@ -78,32 +247,40 @@
     vr-mode-ui="enabled: false"
 
     device-orientation-permission-ui="enabled: false"
+
   >
 
 
     <a-assets>
 
       <video
+
         id="film"
+
         src="./film-web.mp4"
 
         loop
+
         playsinline
         webkit-playsinline
 
         crossorigin="anonymous"
+
       ></video>
 
     </a-assets>
 
 
     <a-camera
+
       position="0 0 0"
+
       look-controls="enabled: false"
+
     ></a-camera>
 
 
-    <!-- TARGET 0 = YOUR POSTER -->
+    <!-- POSTER TARGET -->
 
     <a-entity
       mindar-image-target="targetIndex: 0"
@@ -111,11 +288,10 @@
 
       <a-video
 
-        id="arVideo"
-
         src="#film"
 
         width="1"
+
         height="0.5625"
 
         position="0 0 0.01"
@@ -130,54 +306,131 @@
 
   <script>
 
-    const scene = document.querySelector("a-scene");
-    const startButton = document.querySelector("#start");
 
-    const video = document.querySelector("#film");
+    const scene =
+      document.querySelector("a-scene");
 
-    const target = document.querySelector(
-      '[mindar-image-target="targetIndex: 0"]'
-    );
+
+    const startButton =
+      document.querySelector("#start");
+
+
+    const intro =
+      document.querySelector("#intro");
+
+
+    const loading =
+      document.querySelector("#loading");
+
+
+    const scanning =
+      document.querySelector("#scanning");
+
+
+    const found =
+      document.querySelector("#found");
+
+
+    const video =
+      document.querySelector("#film");
+
+
+    const target =
+      document.querySelector(
+        '[mindar-image-target="targetIndex: 0"]'
+      );
+
+
+    /* ---------- START ---------- */
 
 
     startButton.addEventListener("click", async () => {
 
-      startButton.style.display = "none";
+      intro.style.display = "none";
 
-      try {
+      loading.style.display = "flex";
 
-        await video.play();
-
-      } catch (error) {
-
-        console.log("Video playback waiting for target.");
-
-      }
 
       const mindar =
         scene.systems["mindar-image-system"];
 
-      mindar.start();
+
+      try {
+
+        await mindar.start();
+
+        loading.style.display = "none";
+
+        scanning.style.display = "block";
+
+      }
+
+      catch (error) {
+
+        console.error(error);
+
+        loading.innerHTML =
+          "Unable to access the camera.";
+
+      }
 
     });
 
 
-    target.addEventListener("targetFound", () => {
-
-      console.log("POSTER FOUND");
-
-      video.play().catch(() => {});
-
-    });
+    /* ---------- POSTER FOUND ---------- */
 
 
-    target.addEventListener("targetLost", () => {
+    target.addEventListener(
+      "targetFound",
+      () => {
 
-      console.log("POSTER LOST");
+        console.log("Poster found");
 
-      video.pause();
+        scanning.style.display = "none";
 
-    });
+        found.style.display = "block";
+
+
+        video
+          .play()
+          .catch(error => {
+
+            console.log(
+              "Autoplay prevented:",
+              error
+            );
+
+          });
+
+
+        setTimeout(() => {
+
+          found.style.display = "none";
+
+        }, 1500);
+
+      }
+    );
+
+
+    /* ---------- POSTER LOST ---------- */
+
+
+    target.addEventListener(
+      "targetLost",
+      () => {
+
+        console.log("Poster lost");
+
+        found.style.display = "none";
+
+        scanning.style.display = "block";
+
+        video.pause();
+
+      }
+    );
+
 
   </script>
 
