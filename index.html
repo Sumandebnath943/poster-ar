@@ -310,6 +310,82 @@
       ></a-image>
 
 
+
+      <!-- =================================================
+           EXTRA KITES + ATMOSPHERE
+           These are all children of the tracked target.
+      ================================================= -->
+
+      <a-image id="kiteOrange2" src="#kiteOrange"
+        width="0.040" height="0.040"
+        position="-0.36 0.08 0.026"
+        rotation="0 0 35"
+        material="shader: flat; transparent: true; opacity: 0;">
+      </a-image>
+
+      <a-image id="kiteBlue2" src="#kiteBlue"
+        width="0.032" height="0.032"
+        position="0.34 0.12 0.026"
+        rotation="0 0 55"
+        material="shader: flat; transparent: true; opacity: 0;">
+      </a-image>
+
+      <a-image id="kiteWhite2" src="#kiteWhite"
+        width="0.028" height="0.028"
+        position="0.22 0.25 0.026"
+        rotation="0 0 40"
+        material="shader: flat; transparent: true; opacity: 0;">
+      </a-image>
+
+      <a-image id="kiteOrange3" src="#kiteOrange"
+        width="0.025" height="0.025"
+        position="-0.43 0.20 0.026"
+        rotation="0 0 35"
+        material="shader: flat; transparent: true; opacity: 0;">
+      </a-image>
+
+      <a-image id="kiteBlue3" src="#kiteBlue"
+        width="0.022" height="0.022"
+        position="0.43 0.24 0.026"
+        rotation="0 0 55"
+        material="shader: flat; transparent: true; opacity: 0;">
+      </a-image>
+
+      <!-- Small atmospheric sparks -->
+      <a-sphere id="spark1" radius="0.004" position="-0.40 0.05 0.035"
+        material="shader: flat; color: white; transparent: true; opacity: 0;"></a-sphere>
+
+      <a-sphere id="spark2" radius="0.003" position="-0.28 0.24 0.035"
+        material="shader: flat; color: white; transparent: true; opacity: 0;"></a-sphere>
+
+      <a-sphere id="spark3" radius="0.004" position="-0.02 0.20 0.035"
+        material="shader: flat; color: white; transparent: true; opacity: 0;"></a-sphere>
+
+      <a-sphere id="spark4" radius="0.003" position="0.30 0.18 0.035"
+        material="shader: flat; color: white; transparent: true; opacity: 0;"></a-sphere>
+
+      <a-sphere id="spark5" radius="0.003" position="0.42 0.06 0.035"
+        material="shader: flat; color: white; transparent: true; opacity: 0;"></a-sphere>
+
+      <!-- Tiny glints -->
+      <a-ring id="glint1"
+        radius-inner="0.006" radius-outer="0.009"
+        position="-0.30 0.14 0.04"
+        material="shader: flat; color: white; transparent: true; opacity: 0;">
+      </a-ring>
+
+      <a-ring id="glint2"
+        radius-inner="0.005" radius-outer="0.008"
+        position="0.28 0.08 0.04"
+        material="shader: flat; color: white; transparent: true; opacity: 0;">
+      </a-ring>
+
+      <a-ring id="glint3"
+        radius-inner="0.004" radius-outer="0.007"
+        position="0.02 0.29 0.04"
+        material="shader: flat; color: white; transparent: true; opacity: 0;">
+      </a-ring>
+
       <!-- =================================================
            EXISTING WORKING VIDEO
            DO NOT CHANGE THESE VALUES
@@ -386,10 +462,39 @@
     const kiteBlue =
       document.querySelector("#kiteBlueAR");
 
-    const kites = [
+    const kiteOrange2 = document.querySelector("#kiteOrange2");
+    const kiteBlue2 = document.querySelector("#kiteBlue2");
+    const kiteWhite2 = document.querySelector("#kiteWhite2");
+    const kiteOrange3 = document.querySelector("#kiteOrange3");
+    const kiteBlue3 = document.querySelector("#kiteBlue3");
+
+    const extraKites = [
+      kiteOrange2,
+      kiteBlue2,
+      kiteWhite2,
+      kiteOrange3,
+      kiteBlue3
+    ];
+
+    const allKites = [
       kiteOrange,
       kiteWhite,
-      kiteBlue
+      kiteBlue,
+      ...extraKites
+    ];
+
+    const sparks = [
+      document.querySelector("#spark1"),
+      document.querySelector("#spark2"),
+      document.querySelector("#spark3"),
+      document.querySelector("#spark4"),
+      document.querySelector("#spark5")
+    ];
+
+    const glints = [
+      document.querySelector("#glint1"),
+      document.querySelector("#glint2"),
+      document.querySelector("#glint3")
     ];
 
 
@@ -451,61 +556,72 @@
 
     function resetKites() {
 
-      /* Cancel any pending kite timers. */
       kiteTimers.forEach(
         timer => clearTimeout(timer)
       );
 
       kiteTimers = [];
 
+      const startPositions = {
+        kiteOrange: [-0.207, 0.165],
+        kiteWhite:  [-0.105, 0.190],
+        kiteBlue:   [ 0.135, 0.165],
+        kiteOrange2:[-0.36,  0.08 ],
+        kiteBlue2:  [ 0.34,  0.12 ],
+        kiteWhite2: [ 0.22,  0.25 ],
+        kiteOrange3:[-0.43,  0.20 ],
+        kiteBlue3:  [ 0.43,  0.24 ]
+      };
 
-      /* Put every kite back at its
-         original printed location. */
+      const namedKites = [
+        ["kiteOrange", kiteOrange],
+        ["kiteWhite", kiteWhite],
+        ["kiteBlue", kiteBlue],
+        ["kiteOrange2", kiteOrange2],
+        ["kiteBlue2", kiteBlue2],
+        ["kiteWhite2", kiteWhite2],
+        ["kiteOrange3", kiteOrange3],
+        ["kiteBlue3", kiteBlue3]
+      ];
 
-      kiteOrange.object3D.position.set(
-        -0.207,
-        0.165,
-        0.025
-      );
+      namedKites.forEach(
+        ([name, kite]) => {
 
-      kiteWhite.object3D.position.set(
-        -0.105,
-        0.190,
-        0.025
-      );
+          const [x, y] =
+            startPositions[name];
 
-      kiteBlue.object3D.position.set(
-        0.135,
-        0.165,
-        0.025
-      );
+          kite.object3D.position.set(
+            x,
+            y,
+            0.025
+          );
 
-
-      /* Reset rotation. */
-
-      kiteOrange.object3D.rotation.z =
-        Math.PI / 4;
-
-      kiteWhite.object3D.rotation.z =
-        Math.PI / 4;
-
-      kiteBlue.object3D.rotation.z =
-        Math.PI / 4;
-
-
-      /* Make them invisible. */
-
-      kites.forEach(
-        kite => {
+          kite.object3D.rotation.z =
+            Math.PI / 4;
 
           setEntityOpacity(
             kite,
             0
           );
-
         }
       );
 
+      sparks.forEach(
+        spark => {
+          setEntityOpacity(spark, 0);
+        }
+      );
+
+      glints.forEach(
+        glint => {
+          setEntityOpacity(glint, 0);
+          glint.object3D.scale.set(
+            0.5,
+            0.5,
+            0.5
+          );
+        }
+      );
     }
 
 
@@ -686,69 +802,215 @@
 
       resetKites();
 
-
-      /*
-       * Orange:
-       * starts on the left side of the poster
-       * and escapes toward the upper-left.
-       */
-
+      /* Hero kites */
       animateKite(
         kiteOrange,
-
-        -0.207,
-        0.165,
-
-        -0.46,
-        0.60,
-
-        1700,
-
-        0
+        -0.207, 0.165,
+        -0.46, 0.60,
+        1700, 0
       );
-
-
-      /*
-       * White:
-       * starts near the upper-middle
-       * and rises almost vertically.
-       */
 
       animateKite(
         kiteWhite,
-
-        -0.105,
-        0.190,
-
-        -0.02,
-        0.68,
-
-        1850,
-
-        180
+        -0.105, 0.190,
+        -0.02, 0.68,
+        1850, 140
       );
-
-
-      /*
-       * Blue:
-       * starts toward the right
-       * and escapes upper-right.
-       */
 
       animateKite(
         kiteBlue,
-
-        0.135,
-        0.165,
-
-        0.46,
-        0.58,
-
-        1950,
-
-        320
+        0.135, 0.165,
+        0.46, 0.58,
+        1950, 260
       );
 
+      /* Secondary kites move across the scene
+         at different depths and timings. */
+      animateKite(
+        kiteOrange2,
+        -0.36, 0.08,
+        -0.60, 0.34,
+        1450, 420
+      );
+
+      animateKite(
+        kiteBlue2,
+        0.34, 0.12,
+        0.62, 0.42,
+        1500, 560
+      );
+
+      animateKite(
+        kiteWhite2,
+        0.22, 0.25,
+        0.34, 0.66,
+        1650, 720
+      );
+
+      animateKite(
+        kiteOrange3,
+        -0.43, 0.20,
+        -0.66, 0.50,
+        1350, 880
+      );
+
+      animateKite(
+        kiteBlue3,
+        0.43, 0.24,
+        0.68, 0.54,
+        1450, 1020
+      );
+
+      /* Atmospheric sparks: quick upward drifting points. */
+      sparks.forEach(
+        (spark, index) => {
+
+          const timer = setTimeout(
+            () => {
+
+              if (!tracked) return;
+
+              const start =
+                spark.object3D.position.clone();
+
+              const startTime =
+                performance.now();
+
+              const duration =
+                900 + index * 120;
+
+              const targetX =
+                start.x +
+                (index % 2 === 0 ? -1 : 1) *
+                (0.06 + index * 0.008);
+
+              const targetY =
+                start.y +
+                0.10 +
+                index * 0.012;
+
+              function sparkFrame() {
+
+                if (!tracked) return;
+
+                const progress =
+                  Math.min(
+                    (performance.now() - startTime) /
+                    duration,
+                    1
+                  );
+
+                const eased =
+                  1 -
+                  Math.pow(1 - progress, 3);
+
+                spark.object3D.position.x =
+                  start.x +
+                  (targetX - start.x) *
+                  eased;
+
+                spark.object3D.position.y =
+                  start.y +
+                  (targetY - start.y) *
+                  eased;
+
+                let opacity;
+
+                if (progress < 0.15) {
+                  opacity = progress / 0.15;
+                } else {
+                  opacity = 1 - ((progress - 0.15) / 0.85);
+                }
+
+                setEntityOpacity(
+                  spark,
+                  Math.max(0, opacity * 0.8)
+                );
+
+                if (progress < 1) {
+                  requestAnimationFrame(
+                    sparkFrame
+                  );
+                }
+              }
+
+              requestAnimationFrame(
+                sparkFrame
+              );
+
+            },
+            450 + index * 90
+          );
+
+          kiteTimers.push(timer);
+        }
+      );
+
+      /* Glints pulse at different moments.
+         These are tiny flashes, not generic particles. */
+      glints.forEach(
+        (glint, index) => {
+
+          const timer = setTimeout(
+            () => {
+
+              if (!tracked) return;
+
+              const start =
+                performance.now();
+
+              const duration =
+                700;
+
+              function glintFrame() {
+
+                if (!tracked) return;
+
+                const progress =
+                  Math.min(
+                    (performance.now() - start) /
+                    duration,
+                    1
+                  );
+
+                const brightness =
+                  Math.sin(
+                    progress * Math.PI
+                  );
+
+                const scale =
+                  0.5 +
+                  brightness * 1.5;
+
+                glint.object3D.scale.set(
+                  scale,
+                  scale,
+                  scale
+                );
+
+                setEntityOpacity(
+                  glint,
+                  brightness * 0.95
+                );
+
+                if (progress < 1) {
+                  requestAnimationFrame(
+                    glintFrame
+                  );
+                }
+              }
+
+              requestAnimationFrame(
+                glintFrame
+              );
+
+            },
+            600 + index * 430
+          );
+
+          kiteTimers.push(timer);
+        }
+      );
     }
 
 
