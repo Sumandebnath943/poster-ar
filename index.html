@@ -695,6 +695,26 @@
       });
     }
 
+    /* FIX:
+       The previous version called setLineOpacity()
+       but did not define it. That stopped the entire
+       kite sequence as soon as the target was detected.
+    */
+    function setLineOpacity(entity, opacity) {
+      if (!entity) return;
+
+      const line = entity.getAttribute("line");
+
+      if (!line) return;
+
+      line.opacity = opacity;
+
+      entity.setAttribute(
+        "line",
+        line
+      );
+    }
+
     function setLineGroupOpacity(group, opacity) {
       if (!group) return;
 
