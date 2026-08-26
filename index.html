@@ -84,11 +84,61 @@
       font-size: 16px;
     }
 
-    /* SCANNING */
+    /* =====================================================
+       SCANNING UI  — animated corner brackets
+    ===================================================== */
     #scanning {
       position: fixed;
+      inset: 0;
       z-index: 9000;
+      display: none;
+      pointer-events: none;
+    }
 
+    /* Corner bracket corners */
+    #scanning .corner {
+      position: absolute;
+      width: 36px;
+      height: 36px;
+      border-color: white;
+      border-style: solid;
+      opacity: 0.85;
+      animation: cornerPulse 1.6s ease-in-out infinite;
+    }
+
+    #scanning .corner.tl {
+      top: 72px; left: 24px;
+      border-width: 3px 0 0 3px;
+      border-radius: 4px 0 0 0;
+      animation-delay: 0s;
+    }
+    #scanning .corner.tr {
+      top: 72px; right: 24px;
+      border-width: 3px 3px 0 0;
+      border-radius: 0 4px 0 0;
+      animation-delay: 0.2s;
+    }
+    #scanning .corner.bl {
+      bottom: 120px; left: 24px;
+      border-width: 0 0 3px 3px;
+      border-radius: 0 0 0 4px;
+      animation-delay: 0.4s;
+    }
+    #scanning .corner.br {
+      bottom: 120px; right: 24px;
+      border-width: 0 3px 3px 0;
+      border-radius: 0 0 4px 0;
+      animation-delay: 0.6s;
+    }
+
+    @keyframes cornerPulse {
+      0%, 100% { opacity: 0.85; }
+      50%       { opacity: 0.25; }
+    }
+
+    /* Scanning label */
+    #scanning .scan-label {
+      position: absolute;
       left: 50%;
       bottom: 50px;
       transform: translateX(-50%);
@@ -101,8 +151,30 @@
 
       font-size: 15px;
       white-space: nowrap;
+    }
 
-      display: none;
+    /* Sweep line */
+    #scanning .sweep {
+      position: absolute;
+      top: 72px;
+      left: 24px;
+      right: 24px;
+      height: 2px;
+      background: linear-gradient(
+        to right,
+        transparent 0%,
+        rgba(255,255,255,0.6) 50%,
+        transparent 100%
+      );
+      animation: sweepDown 2s ease-in-out infinite;
+      bottom: 120px;
+      height: 2px;
+    }
+
+    @keyframes sweepDown {
+      0%   { top: 72px; opacity: 0.8; }
+      50%  { opacity: 1; }
+      100% { top: calc(100% - 120px); opacity: 0; }
     }
 
     /* FOUND */
@@ -122,6 +194,37 @@
 
       font-size: 14px;
       display: none;
+    }
+
+    /* =====================================================
+       SHARE BUTTON
+    ===================================================== */
+    #shareBtn {
+      position: fixed;
+      z-index: 9100;
+      bottom: 30px;
+      right: 20px;
+
+      padding: 12px 20px;
+      border: none;
+      border-radius: 999px;
+
+      background: rgba(255, 255, 255, 0.92);
+      color: black;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+
+      display: none;          /* shown after targetFound */
+      align-items: center;
+      gap: 7px;
+
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      transition: opacity 0.3s;
+    }
+
+    #shareBtn svg {
+      flex-shrink: 0;
     }
   </style>
 </head>
@@ -150,9 +253,14 @@
   </div>
 
 
-  <!-- SCANNING -->
+  <!-- SCANNING — animated corner brackets + sweep line -->
   <div id="scanning">
-    Point your camera at the poster
+    <div class="corner tl"></div>
+    <div class="corner tr"></div>
+    <div class="corner bl"></div>
+    <div class="corner br"></div>
+    <div class="sweep"></div>
+    <div class="scan-label">Point your camera at the poster</div>
   </div>
 
 
@@ -160,6 +268,20 @@
   <div id="found">
     ✓ Poster detected
   </div>
+
+
+  <!-- SHARE BUTTON -->
+  <button id="shareBtn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="2.5"
+      stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/>
+      <circle cx="18" cy="19" r="3"/>
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+    </svg>
+    Share
+  </button>
 
 
   <!--
@@ -179,11 +301,11 @@
       uiScanning: no;
       uiError: yes;
 
-      warmupTolerance: 3;
-      missTolerance: 5;
+      warmupTolerance: 5;
+      missTolerance: 10;
 
-      filterMinCF: 0.01;
-      filterBeta: 10000;
+      filterMinCF: 0.001;
+      filterBeta: 1000;
     "
 
     color-space="sRGB"
@@ -439,6 +561,9 @@
     const found =
       document.querySelector("#found");
 
+    const shareBtn =
+      document.querySelector("#shareBtn");
+
     const video =
       document.querySelector("#film");
 
@@ -508,7 +633,129 @@
 
     let fadeAnimation = null;
 
+    /* rAF handle for the video fade-out on targetLost */
+    let fadeOutAnimation = null;
+
     let kiteTimers = [];
+
+    /* setInterval handle for the kite loop */
+    let kiteLoopTimer = null;
+
+    /* AudioContext — created lazily on first user gesture */
+    let audioCtx = null;
+
+
+    /* ====================================================
+       AUDIO — lazy init + helpers
+    ==================================================== */
+
+    function ensureAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext ||
+          window.webkitAudioContext)();
+      }
+      /* Resume if suspended (browser autoplay policy) */
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    /* A gentle bell/chime — played on poster detection */
+    function playDetectionChime() {
+      try {
+        const ctx = ensureAudio();
+
+        /* Two slightly detuned sine waves for a rich bell tone */
+        const freqs = [880, 1108];
+        freqs.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, ctx.currentTime);
+
+          gain.gain.setValueAtTime(0, ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(
+            0.18 - i * 0.04,
+            ctx.currentTime + 0.01
+          );
+          gain.gain.exponentialRampToValueAtTime(
+            0.001,
+            ctx.currentTime + 1.2
+          );
+
+          osc.start(ctx.currentTime + i * 0.015);
+          osc.stop(ctx.currentTime + 1.2);
+        });
+      } catch (e) {
+        /* Audio errors are non-fatal */
+      }
+    }
+
+    /* A soft whoosh — played when kites launch */
+    function playWhoosh() {
+      try {
+        const ctx = ensureAudio();
+
+        const bufferSize = ctx.sampleRate * 0.6;
+        const buffer = ctx.createBuffer(
+          1,
+          bufferSize,
+          ctx.sampleRate
+        );
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = (Math.random() * 2 - 1);
+        }
+
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+
+        /* Band-pass around 800 Hz gives a "whoosh" character */
+        const filter = ctx.createBiquadFilter();
+        filter.type = "bandpass";
+        filter.frequency.setValueAtTime(800, ctx.currentTime);
+        filter.frequency.exponentialRampToValueAtTime(
+          200,
+          ctx.currentTime + 0.6
+        );
+        filter.Q.value = 0.8;
+
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(
+          0.22,
+          ctx.currentTime + 0.05
+        );
+        gain.gain.exponentialRampToValueAtTime(
+          0.001,
+          ctx.currentTime + 0.6
+        );
+
+        source.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+
+        source.start(ctx.currentTime);
+      } catch (e) {
+        /* Non-fatal */
+      }
+    }
+
+
+    /* ====================================================
+       HAPTIC FEEDBACK
+    ==================================================== */
+
+    function vibrate() {
+      if (navigator.vibrate) {
+        navigator.vibrate([50, 30, 80]);
+      }
+    }
 
 
     /* ====================================================
@@ -724,6 +971,9 @@
 
       resetKites();
 
+      /* Play whoosh sound */
+      playWhoosh();
+
       /* Hero kites */
       animateKite(
         kiteOrange,
@@ -937,27 +1187,54 @@
 
 
     /* ====================================================
+       KITE LOOP — re-launches every ~4 seconds
+       while the target is tracked
+    ==================================================== */
+
+    function startKiteLoop() {
+      stopKiteLoop();
+      /* The first launch happens immediately in targetFound.
+         The loop fires subsequent launches. */
+      kiteLoopTimer = setInterval(() => {
+        if (!tracked) {
+          stopKiteLoop();
+          return;
+        }
+        launchKites();
+      }, 4200);
+    }
+
+    function stopKiteLoop() {
+      if (kiteLoopTimer !== null) {
+        clearInterval(kiteLoopTimer);
+        kiteLoopTimer = null;
+      }
+    }
+
+
+    /* ====================================================
        FADE VIDEO IN
     ==================================================== */
 
     function fadeVideoIn() {
 
       if (fadeAnimation) {
-
         cancelAnimationFrame(
           fadeAnimation
         );
-
       }
 
+      /* Cancel any in-progress fade-out */
+      if (fadeOutAnimation) {
+        cancelAnimationFrame(fadeOutAnimation);
+        fadeOutAnimation = null;
+      }
 
       const startTime =
         performance.now();
 
-
       const duration =
         1500;
-
 
       function animate() {
 
@@ -965,18 +1242,15 @@
           return;
         }
 
-
         const elapsed =
           performance.now() -
           startTime;
-
 
         const progress =
           Math.min(
             elapsed / duration,
             1
           );
-
 
         /* Smooth ease-in/out. */
 
@@ -985,11 +1259,9 @@
           progress *
           (3 - 2 * progress);
 
-
         setVideoOpacity(
           eased
         );
-
 
         if (progress < 1) {
 
@@ -1001,45 +1273,190 @@
         }
       }
 
-
       animate();
 
     }
 
 
     /* ====================================================
-       RESET VIDEO
+       FADE VIDEO OUT (graceful)
+    ==================================================== */
+
+    function fadeVideoOut(onComplete) {
+
+      if (fadeAnimation) {
+        cancelAnimationFrame(fadeAnimation);
+        fadeAnimation = null;
+      }
+
+      const material = arVideo.getAttribute("material");
+      const startOpacity = material ? material.opacity : 0;
+
+      if (startOpacity <= 0) {
+        onComplete && onComplete();
+        return;
+      }
+
+      const duration = 600;
+      const startTime = performance.now();
+
+      function animate() {
+        const progress = Math.min(
+          (performance.now() - startTime) / duration,
+          1
+        );
+
+        setVideoOpacity(
+          startOpacity * (1 - progress)
+        );
+
+        if (progress < 1) {
+          fadeOutAnimation =
+            requestAnimationFrame(animate);
+        } else {
+          fadeOutAnimation = null;
+          video.pause();
+          video.currentTime = 0;
+          setVideoOpacity(0);
+          onComplete && onComplete();
+        }
+      }
+
+      fadeOutAnimation = requestAnimationFrame(animate);
+    }
+
+
+    /* ====================================================
+       RESET VIDEO (instant — only called after fade-out)
     ==================================================== */
 
     function resetVideo() {
 
       if (fadeTimer) {
-
-        clearTimeout(
-          fadeTimer
-        );
-
+        clearTimeout(fadeTimer);
         fadeTimer = null;
       }
 
-
       if (fadeAnimation) {
-
-        cancelAnimationFrame(
-          fadeAnimation
-        );
-
+        cancelAnimationFrame(fadeAnimation);
         fadeAnimation = null;
       }
 
+      if (fadeOutAnimation) {
+        cancelAnimationFrame(fadeOutAnimation);
+        fadeOutAnimation = null;
+      }
 
       video.pause();
-
       video.currentTime = 0;
-
       setVideoOpacity(0);
-
     }
+
+
+    /* ====================================================
+       FADE ALL KITES OUT (graceful — used on targetLost)
+    ==================================================== */
+
+    function fadeKitesOut(duration, onComplete) {
+      const startTime = performance.now();
+
+      /* Capture current opacity for each kite */
+      const kiteStartOpacities = allKites.map(k => {
+        const m = k.getAttribute("material");
+        return m ? (m.opacity || 0) : 0;
+      });
+      const sparkStartOpacities = sparks.map(s => {
+        const m = s.getAttribute("material");
+        return m ? (m.opacity || 0) : 0;
+      });
+      const glintStartOpacities = glints.map(g => {
+        const m = g.getAttribute("material");
+        return m ? (m.opacity || 0) : 0;
+      });
+
+      function frame() {
+        const progress = Math.min(
+          (performance.now() - startTime) / duration,
+          1
+        );
+
+        allKites.forEach((k, i) => {
+          setEntityOpacity(k, kiteStartOpacities[i] * (1 - progress));
+        });
+        sparks.forEach((s, i) => {
+          setEntityOpacity(s, sparkStartOpacities[i] * (1 - progress));
+        });
+        glints.forEach((g, i) => {
+          setEntityOpacity(g, glintStartOpacities[i] * (1 - progress));
+        });
+
+        if (progress < 1) {
+          requestAnimationFrame(frame);
+        } else {
+          onComplete && onComplete();
+        }
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+
+    /* ====================================================
+       SHARE / SCREENSHOT
+    ==================================================== */
+
+    shareBtn.addEventListener("click", async () => {
+
+      try {
+        /* Capture the visible screen as a canvas frame */
+        const canvas = document.createElement("canvas");
+        const videoEl = document.querySelector("a-scene canvas") ||
+          document.querySelector("canvas");
+
+        if (!videoEl) {
+          alert("Screenshot not available on this device.");
+          return;
+        }
+
+        canvas.width = videoEl.width;
+        canvas.height = videoEl.height;
+        const ctx2d = canvas.getContext("2d");
+        ctx2d.drawImage(videoEl, 0, 0);
+
+        canvas.toBlob(async (blob) => {
+          if (!blob) return;
+
+          const file = new File(
+            [blob],
+            "ar-moment.png",
+            { type: "image/png" }
+          );
+
+          /* Use Web Share API (mobile) if available */
+          if (
+            navigator.canShare &&
+            navigator.canShare({ files: [file] })
+          ) {
+            await navigator.share({
+              title: "AR Experience",
+              text: "Check out this AR poster experience!",
+              files: [file]
+            });
+          } else {
+            /* Fallback: download the image */
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "ar-moment.png";
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+          }
+        }, "image/png");
+
+      } catch (err) {
+        console.warn("Share failed:", err);
+      }
+    });
 
 
     /* ====================================================
@@ -1049,6 +1466,9 @@
     startButton.addEventListener(
       "click",
       async () => {
+
+        /* Resume / create AudioContext on this user gesture */
+        ensureAudio();
 
         intro.style.display =
           "none";
@@ -1136,6 +1556,17 @@
         );
 
 
+        /* Show share button */
+        shareBtn.style.display = "flex";
+
+
+        /* Haptic pulse */
+        vibrate();
+
+        /* Detection chime */
+        playDetectionChime();
+
+
         /* -----------------------------------------------
            RESET THE EFFECT STATE
         ------------------------------------------------ */
@@ -1176,6 +1607,9 @@
 
         launchKites();
 
+        /* Start the repeating loop */
+        startKiteLoop();
+
 
         /* -----------------------------------------------
            VIDEO TRANSITION.
@@ -1204,7 +1638,7 @@
 
 
     /* ====================================================
-       POSTER LOST
+       POSTER LOST — graceful fade-out
     ==================================================== */
 
     target.addEventListener(
@@ -1218,18 +1652,43 @@
 
         tracked = false;
 
+        /* Stop the kite loop immediately */
+        stopKiteLoop();
 
-        scanning.style.display =
-          "block";
+        /* Cancel any pending kite timers */
+        kiteTimers.forEach(t => clearTimeout(t));
+        kiteTimers = [];
+
+        /* Cancel any pending video-start timer */
+        if (fadeTimer) {
+          clearTimeout(fadeTimer);
+          fadeTimer = null;
+        }
+
+
+        /* Fade kites out over 400ms, then fully reset */
+        fadeKitesOut(400, () => {
+          resetKites();
+        });
+
+        /* Fade video out over 600ms, then reset */
+        fadeVideoOut(() => {
+          /* resetVideo already ran inside fadeVideoOut */
+        });
+
+
+        /* Show scanning UI after a brief delay
+           so it doesn't flash over the fade */
+        setTimeout(() => {
+          if (!tracked) {
+            scanning.style.display = "block";
+            shareBtn.style.display = "none";
+          }
+        }, 350);
 
 
         found.style.display =
           "none";
-
-
-        resetVideo();
-
-        resetKites();
 
       }
     );
@@ -1244,6 +1703,7 @@
     setVideoOpacity(0);
 
   </script>
+
 
 </body>
 
