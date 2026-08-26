@@ -85,96 +85,134 @@
     }
 
     /* =====================================================
-       SCANNING UI  — animated corner brackets
+       SCANNING UI — centered viewfinder
     ===================================================== */
+
     #scanning {
       position: fixed;
       inset: 0;
       z-index: 9000;
       display: none;
       pointer-events: none;
+
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
     }
 
-    /* Corner bracket corners */
-    #scanning .corner {
+    #scanning::before {
+      content: '';
       position: absolute;
-      width: 36px;
-      height: 36px;
+      inset: 0;
+      background: radial-gradient(
+        ellipse 70% 60% at 50% 50%,
+        transparent 40%,
+        rgba(0, 0, 0, 0.55) 100%
+      );
+    }
+
+    .scan-frame {
+      position: relative;
+      width: min(72vw, 260px);
+      aspect-ratio: 3 / 4;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .scan-frame::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+    }
+
+    .scan-corner {
+      position: absolute;
+      width: 22px;
+      height: 22px;
       border-color: white;
       border-style: solid;
-      opacity: 0.85;
-      animation: cornerPulse 1.6s ease-in-out infinite;
+      animation: scanCornerPulse 2s ease-in-out infinite;
     }
 
-    #scanning .corner.tl {
-      top: 72px; left: 24px;
-      border-width: 3px 0 0 3px;
-      border-radius: 4px 0 0 0;
+    .scan-corner.tl {
+      top: 0; left: 0;
+      border-width: 2.5px 0 0 2.5px;
+      border-radius: 6px 0 0 0;
       animation-delay: 0s;
     }
-    #scanning .corner.tr {
-      top: 72px; right: 24px;
-      border-width: 3px 3px 0 0;
-      border-radius: 0 4px 0 0;
-      animation-delay: 0.2s;
+    .scan-corner.tr {
+      top: 0; right: 0;
+      border-width: 2.5px 2.5px 0 0;
+      border-radius: 0 6px 0 0;
+      animation-delay: 0.25s;
     }
-    #scanning .corner.bl {
-      bottom: 120px; left: 24px;
-      border-width: 0 0 3px 3px;
-      border-radius: 0 0 0 4px;
-      animation-delay: 0.4s;
+    .scan-corner.bl {
+      bottom: 0; left: 0;
+      border-width: 0 0 2.5px 2.5px;
+      border-radius: 0 0 0 6px;
+      animation-delay: 0.5s;
     }
-    #scanning .corner.br {
-      bottom: 120px; right: 24px;
-      border-width: 0 3px 3px 0;
-      border-radius: 0 0 4px 0;
-      animation-delay: 0.6s;
-    }
-
-    @keyframes cornerPulse {
-      0%, 100% { opacity: 0.85; }
-      50%       { opacity: 0.25; }
+    .scan-corner.br {
+      bottom: 0; right: 0;
+      border-width: 0 2.5px 2.5px 0;
+      border-radius: 0 0 6px 0;
+      animation-delay: 0.75s;
     }
 
-    /* Scanning label */
-    #scanning .scan-label {
+    @keyframes scanCornerPulse {
+      0%, 100% { opacity: 1;    transform: scale(1);    }
+      50%       { opacity: 0.3; transform: scale(0.92); }
+    }
+
+    .scan-sweep {
       position: absolute;
-      left: 50%;
-      bottom: 50px;
-      transform: translateX(-50%);
-
-      padding: 12px 20px;
-      border-radius: 999px;
-
-      background: rgba(0, 0, 0, 0.7);
-      color: white;
-
-      font-size: 15px;
-      white-space: nowrap;
-    }
-
-    /* Sweep line */
-    #scanning .sweep {
-      position: absolute;
-      top: 72px;
-      left: 24px;
-      right: 24px;
+      left: 0; right: 0;
       height: 2px;
       background: linear-gradient(
         to right,
         transparent 0%,
-        rgba(255,255,255,0.6) 50%,
+        rgba(255, 255, 255, 0.7) 35%,
+        white 50%,
+        rgba(255, 255, 255, 0.7) 65%,
         transparent 100%
       );
-      animation: sweepDown 2s ease-in-out infinite;
-      bottom: 120px;
-      height: 2px;
+      box-shadow: 0 0 8px 2px rgba(255, 255, 255, 0.35);
+      animation: scanSweep 2.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
     }
 
-    @keyframes sweepDown {
-      0%   { top: 72px; opacity: 0.8; }
-      50%  { opacity: 1; }
-      100% { top: calc(100% - 120px); opacity: 0; }
+    @keyframes scanSweep {
+      0%   { top: 0%;   opacity: 0; }
+      8%   { opacity: 1; }
+      92%  { opacity: 1; }
+      100% { top: 100%; opacity: 0; }
+    }
+
+    .scan-label {
+      position: relative;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: baseline;
+      gap: 1px;
+    }
+
+    .scan-dot {
+      opacity: 0;
+      animation: dotBlink 1.5s ease-in-out infinite;
+    }
+    .scan-dot:nth-child(1) { animation-delay: 0s; }
+    .scan-dot:nth-child(2) { animation-delay: 0.3s; }
+    .scan-dot:nth-child(3) { animation-delay: 0.6s; }
+
+    @keyframes dotBlink {
+      0%, 100% { opacity: 0; }
+      50%       { opacity: 1; }
     }
 
     /* FOUND */
@@ -194,37 +232,6 @@
 
       font-size: 14px;
       display: none;
-    }
-
-    /* =====================================================
-       SHARE BUTTON
-    ===================================================== */
-    #shareBtn {
-      position: fixed;
-      z-index: 9100;
-      bottom: 30px;
-      right: 20px;
-
-      padding: 12px 20px;
-      border: none;
-      border-radius: 999px;
-
-      background: rgba(255, 255, 255, 0.92);
-      color: black;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-
-      display: none;          /* shown after targetFound */
-      align-items: center;
-      gap: 7px;
-
-      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-      transition: opacity 0.3s;
-    }
-
-    #shareBtn svg {
-      flex-shrink: 0;
     }
   </style>
 </head>
@@ -253,14 +260,18 @@
   </div>
 
 
-  <!-- SCANNING — animated corner brackets + sweep line -->
+  <!-- SCANNING — centered viewfinder -->
   <div id="scanning">
-    <div class="corner tl"></div>
-    <div class="corner tr"></div>
-    <div class="corner bl"></div>
-    <div class="corner br"></div>
-    <div class="sweep"></div>
-    <div class="scan-label">Point your camera at the poster</div>
+    <div class="scan-frame">
+      <div class="scan-corner tl"></div>
+      <div class="scan-corner tr"></div>
+      <div class="scan-corner bl"></div>
+      <div class="scan-corner br"></div>
+      <div class="scan-sweep"></div>
+    </div>
+    <div class="scan-label">
+      Scanning<span class="scan-dot">.</span><span class="scan-dot">.</span><span class="scan-dot">.</span>
+    </div>
   </div>
 
 
@@ -268,20 +279,6 @@
   <div id="found">
     ✓ Poster detected
   </div>
-
-
-  <!-- SHARE BUTTON -->
-  <button id="shareBtn">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" stroke-width="2.5"
-      stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/>
-      <circle cx="18" cy="19" r="3"/>
-      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-    </svg>
-    Share
-  </button>
 
 
   <!--
@@ -337,10 +334,9 @@
         preload="auto"
       ></video>
 
-      <!-- Put these three files beside index.html -->
       <img id="kiteOrange" src="./kite-orange.png">
-      <img id="kiteBlue" src="./kite-blue.png">
-      <img id="kiteWhite" src="./kite-white.png">
+      <img id="kiteBlue"   src="./kite-blue.png">
+      <img id="kiteWhite"  src="./kite-white.png">
 
     </a-assets>
 
@@ -364,153 +360,231 @@
       mindar-image-target="targetIndex: 0"
     >
 
-
-      <!-- =================================================
-           KITE 1
-           Starts over the printed kite.
+      <!-- ================================================
+           KITE GROUP
+           A single entity that receives the gyroscope
+           parallax offset. All flying elements live here
+           so they shift together as a depth layer while
+           the frame and video stay locked to the poster.
       ================================================= -->
 
-      <a-image
-        id="kiteOrangeAR"
-        src="#kiteOrange"
+      <a-entity id="kiteGroup">
 
-        width="0.055"
-        height="0.055"
+        <!-- KITE 1 — starts over the printed kite -->
+        <a-image
+          id="kiteOrangeAR"
+          src="#kiteOrange"
+          width="0.055"
+          height="0.055"
+          position="-0.207 0.165 0.025"
+          rotation="0 0 45"
+          material="shader: flat; transparent: true; opacity: 0;"
+        ></a-image>
 
-        position="-0.207 0.165 0.025"
-        rotation="0 0 45"
+        <!-- KITE 2 -->
+        <a-image
+          id="kiteWhiteAR"
+          src="#kiteWhite"
+          width="0.052"
+          height="0.052"
+          position="-0.105 0.190 0.025"
+          rotation="0 0 45"
+          material="shader: flat; transparent: true; opacity: 0;"
+        ></a-image>
 
-        material="
-          shader: flat;
-          transparent: true;
-          opacity: 0;
-        "
-      ></a-image>
+        <!-- KITE 3 -->
+        <a-image
+          id="kiteBlueAR"
+          src="#kiteBlue"
+          width="0.048"
+          height="0.048"
+          position="0.135 0.165 0.025"
+          rotation="0 0 45"
+          material="shader: flat; transparent: true; opacity: 0;"
+        ></a-image>
+
+        <!-- EXTRA KITES + ATMOSPHERE -->
+
+        <a-image id="kiteOrange2" src="#kiteOrange"
+          width="0.040" height="0.040"
+          position="-0.36 0.08 0.026"
+          rotation="0 0 35"
+          material="shader: flat; transparent: true; opacity: 0;">
+        </a-image>
+
+        <a-image id="kiteBlue2" src="#kiteBlue"
+          width="0.032" height="0.032"
+          position="0.34 0.12 0.026"
+          rotation="0 0 55"
+          material="shader: flat; transparent: true; opacity: 0;">
+        </a-image>
+
+        <a-image id="kiteWhite2" src="#kiteWhite"
+          width="0.028" height="0.028"
+          position="0.22 0.25 0.026"
+          rotation="0 0 40"
+          material="shader: flat; transparent: true; opacity: 0;">
+        </a-image>
+
+        <a-image id="kiteOrange3" src="#kiteOrange"
+          width="0.025" height="0.025"
+          position="-0.43 0.20 0.026"
+          rotation="0 0 35"
+          material="shader: flat; transparent: true; opacity: 0;">
+        </a-image>
+
+        <a-image id="kiteBlue3" src="#kiteBlue"
+          width="0.022" height="0.022"
+          position="0.43 0.24 0.026"
+          rotation="0 0 55"
+          material="shader: flat; transparent: true; opacity: 0;">
+        </a-image>
+
+        <!-- Atmospheric sparks -->
+        <a-sphere id="spark1" radius="0.004" position="-0.40 0.05 0.035"
+          material="shader: flat; color: white; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere id="spark2" radius="0.003" position="-0.28 0.24 0.035"
+          material="shader: flat; color: white; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere id="spark3" radius="0.004" position="-0.02 0.20 0.035"
+          material="shader: flat; color: white; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere id="spark4" radius="0.003" position="0.30 0.18 0.035"
+          material="shader: flat; color: white; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere id="spark5" radius="0.003" position="0.42 0.06 0.035"
+          material="shader: flat; color: white; transparent: true; opacity: 0;"></a-sphere>
+
+        <!-- Glints -->
+        <a-ring id="glint1"
+          radius-inner="0.006" radius-outer="0.009"
+          position="-0.30 0.14 0.04"
+          material="shader: flat; color: white; transparent: true; opacity: 0;">
+        </a-ring>
+        <a-ring id="glint2"
+          radius-inner="0.005" radius-outer="0.008"
+          position="0.28 0.08 0.04"
+          material="shader: flat; color: white; transparent: true; opacity: 0;">
+        </a-ring>
+        <a-ring id="glint3"
+          radius-inner="0.004" radius-outer="0.007"
+          position="0.02 0.29 0.04"
+          material="shader: flat; color: white; transparent: true; opacity: 0;">
+        </a-ring>
+
+        <!-- ==============================================
+             WIND TRAIL PARTICLE POOL (30 spheres)
+             Parked far off-screen at y=-5 with opacity 0.
+             spawnTrail() borrows and returns them in turn.
+        =============================================== -->
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
+
+      </a-entity><!-- /kiteGroup -->
 
 
-      <!-- =================================================
-           KITE 2
+      <!-- ================================================
+           ANIMATED POSTER FRAME
+           Four white bars that expand from the centre
+           outward on detection, framing the video.
+           Lives outside kiteGroup so parallax doesn't move it.
       ================================================= -->
 
-      <a-image
-        id="kiteWhiteAR"
-        src="#kiteWhite"
+      <!-- Top and bottom expand horizontally (scale.x: 0 → 1) -->
+      <a-plane id="frameTop"
+        width="1.044" height="0.011"
+        position="0 0.289 0.013"
+        material="shader: flat; color: #FFFFFF; transparent: true; opacity: 0;"
+        scale="0 1 1">
+      </a-plane>
 
-        width="0.052"
-        height="0.052"
+      <a-plane id="frameBottom"
+        width="1.044" height="0.011"
+        position="0 -0.289 0.013"
+        material="shader: flat; color: #FFFFFF; transparent: true; opacity: 0;"
+        scale="0 1 1">
+      </a-plane>
 
-        position="-0.105 0.190 0.025"
-        rotation="0 0 45"
+      <!-- Left and right expand vertically (scale.y: 0 → 1) -->
+      <a-plane id="frameLeft"
+        width="0.011" height="0.5825"
+        position="-0.527 0 0.013"
+        material="shader: flat; color: #FFFFFF; transparent: true; opacity: 0;"
+        scale="1 0 1">
+      </a-plane>
 
-        material="
-          shader: flat;
-          transparent: true;
-          opacity: 0;
-        "
-      ></a-image>
+      <a-plane id="frameRight"
+        width="0.011" height="0.5825"
+        position="0.527 0 0.013"
+        material="shader: flat; color: #FFFFFF; transparent: true; opacity: 0;"
+        scale="1 0 1">
+      </a-plane>
 
 
-      <!-- =================================================
-           KITE 3
+      <!-- ================================================
+           INK-BLEED DISSOLVE PANELS (5 cols × 4 rows = 20)
+           Pre-positioned as a grid covering the video area.
+           Parked at opacity 0. inkBleedReveal() snaps them
+           to black, then randomly dissolves them away to
+           reveal the video underneath.
       ================================================= -->
 
-      <a-image
-        id="kiteBlueAR"
-        src="#kiteBlue"
+      <!-- Row 0 (bottom) y ≈ -0.211 -->
+      <a-plane class="ink-panel" width="0.2" height="0.1406" position="-0.4 -0.211 0.016" material="shader: flat; color: #000000; transparent: true; opacity: 0;"></a-plane>
+      <a-plane class="ink-panel" width="0.2" height="0.1406" position="-0.2 -0.211 0.016" material="shader: flat; color: #000000; transparent: true; opacity: 0;"></a-plane>
+      <a-plane class="ink-panel" width="0.2" height="0.1406" position=" 0.0 -0.211 0.016" material="shader: flat; color: #000000; transparent: true; opacity: 0;"></a-plane>
+      <a-plane class="ink-panel" width="0.2" height="0.1406" position=" 0.2 -0.211 0.016" material="shader: flat; color: #000000; transparent: true; opacity: 0;"></a-plane>
+      <a-plane class="ink-panel" width="0.2" height="0.1406" position=" 0.4 -0.211 0.016" material="shader: flat; color: #000000; transparent: true; opacity: 0;"></a-plane>
 
-        width="0.048"
-        height="0.048"
+      <!-- Row 1 y ≈ -0.070 -->
+      <a-plane class="ink-panel" width="0.2" height="0.1406" position="-0.4 -0.070 0.016" material="shader: flat; color: #000000; transparent: true; opacity: 0;"></a-plane>
+      <a-plane class="ink-panel" width="0.2" height="0.1406" position="-0.2 -0.070 0.016" material="shader: flat; color: #000000; transparent: true; opacity: 0;"></a-plane>
+      <a-plane class="ink-panel" width="0.2" height="0.1406" position=" 0.0 -0.070 0.016" material="shader: flat; color: #000000; transparent: true; opacity: 0;"></a-plane>
+      <a-plane class="ink-panel" width="0.2" height="0.1406" position=" 0.2 -0.070 0.016" material="shader: flat; color: #000000; transparent: true; opacity: 0;"></a-plane>
+      <a-plane class="ink-panel" width="0.2" height="0.1406" position=" 0.4 -0.070 0.016" material="shader: flat; color: #000000; transparent: true; opacity: 0;"></a-plane>
 
-        position="0.135 0.165 0.025"
-        rotation="0 0 45"
+      <!-- Row 2 y ≈ +0.070 -->
+      <a-plane class="ink-panel" width="0.2" height="0.1406" position="-0.4  0.070 0.016" material="shader: flat; color: #000000; transparent: true; opacity: 0;"></a-plane>
+      <a-plane class="ink-panel" width="0.2" height="0.1406" position="-0.2  0.070 0.016" material="shader: flat; color: #000000; transparent: true; opacity: 0;"></a-plane>
+      <a-plane class="ink-panel" width="0.2" height="0.1406" position=" 0.0  0.070 0.016" material="shader: flat; color: #000000; transparent: true; opacity: 0;"></a-plane>
+      <a-plane class="ink-panel" width="0.2" height="0.1406" position=" 0.2  0.070 0.016" material="shader: flat; color: #000000; transparent: true; opacity: 0;"></a-plane>
+      <a-plane class="ink-panel" width="0.2" height="0.1406" position=" 0.4  0.070 0.016" material="shader: flat; color: #000000; transparent: true; opacity: 0;"></a-plane>
 
-        material="
-          shader: flat;
-          transparent: true;
-          opacity: 0;
-        "
-      ></a-image>
+      <!-- Row 3 (top) y ≈ +0.211 -->
+      <a-plane class="ink-panel" width="0.2" height="0.1406" position="-0.4  0.211 0.016" material="shader: flat; color: #000000; transparent: true; opacity: 0;"></a-plane>
+      <a-plane class="ink-panel" width="0.2" height="0.1406" position="-0.2  0.211 0.016" material="shader: flat; color: #000000; transparent: true; opacity: 0;"></a-plane>
+      <a-plane class="ink-panel" width="0.2" height="0.1406" position=" 0.0  0.211 0.016" material="shader: flat; color: #000000; transparent: true; opacity: 0;"></a-plane>
+      <a-plane class="ink-panel" width="0.2" height="0.1406" position=" 0.2  0.211 0.016" material="shader: flat; color: #000000; transparent: true; opacity: 0;"></a-plane>
+      <a-plane class="ink-panel" width="0.2" height="0.1406" position=" 0.4  0.211 0.016" material="shader: flat; color: #000000; transparent: true; opacity: 0;"></a-plane>
 
 
-
-      <!-- =================================================
-           EXTRA KITES + ATMOSPHERE
-           These are all children of the tracked target.
-      ================================================= -->
-
-      <a-image id="kiteOrange2" src="#kiteOrange"
-        width="0.040" height="0.040"
-        position="-0.36 0.08 0.026"
-        rotation="0 0 35"
-        material="shader: flat; transparent: true; opacity: 0;">
-      </a-image>
-
-      <a-image id="kiteBlue2" src="#kiteBlue"
-        width="0.032" height="0.032"
-        position="0.34 0.12 0.026"
-        rotation="0 0 55"
-        material="shader: flat; transparent: true; opacity: 0;">
-      </a-image>
-
-      <a-image id="kiteWhite2" src="#kiteWhite"
-        width="0.028" height="0.028"
-        position="0.22 0.25 0.026"
-        rotation="0 0 40"
-        material="shader: flat; transparent: true; opacity: 0;">
-      </a-image>
-
-      <a-image id="kiteOrange3" src="#kiteOrange"
-        width="0.025" height="0.025"
-        position="-0.43 0.20 0.026"
-        rotation="0 0 35"
-        material="shader: flat; transparent: true; opacity: 0;">
-      </a-image>
-
-      <a-image id="kiteBlue3" src="#kiteBlue"
-        width="0.022" height="0.022"
-        position="0.43 0.24 0.026"
-        rotation="0 0 55"
-        material="shader: flat; transparent: true; opacity: 0;">
-      </a-image>
-
-      <!-- Small atmospheric sparks -->
-      <a-sphere id="spark1" radius="0.004" position="-0.40 0.05 0.035"
-        material="shader: flat; color: white; transparent: true; opacity: 0;"></a-sphere>
-
-      <a-sphere id="spark2" radius="0.003" position="-0.28 0.24 0.035"
-        material="shader: flat; color: white; transparent: true; opacity: 0;"></a-sphere>
-
-      <a-sphere id="spark3" radius="0.004" position="-0.02 0.20 0.035"
-        material="shader: flat; color: white; transparent: true; opacity: 0;"></a-sphere>
-
-      <a-sphere id="spark4" radius="0.003" position="0.30 0.18 0.035"
-        material="shader: flat; color: white; transparent: true; opacity: 0;"></a-sphere>
-
-      <a-sphere id="spark5" radius="0.003" position="0.42 0.06 0.035"
-        material="shader: flat; color: white; transparent: true; opacity: 0;"></a-sphere>
-
-      <!-- Tiny glints -->
-      <a-ring id="glint1"
-        radius-inner="0.006" radius-outer="0.009"
-        position="-0.30 0.14 0.04"
-        material="shader: flat; color: white; transparent: true; opacity: 0;">
-      </a-ring>
-
-      <a-ring id="glint2"
-        radius-inner="0.005" radius-outer="0.008"
-        position="0.28 0.08 0.04"
-        material="shader: flat; color: white; transparent: true; opacity: 0;">
-      </a-ring>
-
-      <a-ring id="glint3"
-        radius-inner="0.004" radius-outer="0.007"
-        position="0.02 0.29 0.04"
-        material="shader: flat; color: white; transparent: true; opacity: 0;">
-      </a-ring>
-
-      <!-- =================================================
-           EXISTING WORKING VIDEO
-           DO NOT CHANGE THESE VALUES
+      <!-- ================================================
+           VIDEO — DO NOT CHANGE THESE VALUES
       ================================================= -->
 
       <a-video
@@ -531,7 +605,7 @@
       ></a-video>
 
 
-    </a-entity>
+    </a-entity><!-- /posterTarget -->
 
 
   </a-scene>
@@ -540,72 +614,73 @@
   <script>
 
     /* ====================================================
+       VERSION / CACHE BUSTING
+       Update APP_VERSION string on every deploy.
+       On load, the page compares it against localStorage.
+       If stale, it redirects to a cache-busted URL so the
+       browser fetches fresh assets instead of serving old
+       cached files.
+    ==================================================== */
+
+    const APP_VERSION = "2026-08-26-v3";
+
+    (function bustCache() {
+      const stored = localStorage.getItem("ar_version");
+      if (stored && stored !== APP_VERSION) {
+        localStorage.setItem("ar_version", APP_VERSION);
+        location.replace(
+          location.pathname + "?v=" + APP_VERSION
+        );
+        return;
+      }
+      localStorage.setItem("ar_version", APP_VERSION);
+    })();
+
+
+    /* ====================================================
        DOM REFERENCES
     ==================================================== */
 
-    const scene =
-      document.querySelector("a-scene");
+    const scene       = document.querySelector("a-scene");
+    const startButton = document.querySelector("#start");
+    const intro       = document.querySelector("#intro");
+    const loading     = document.querySelector("#loading");
+    const scanning    = document.querySelector("#scanning");
+    const found       = document.querySelector("#found");
+    const video       = document.querySelector("#film");
+    const arVideo     = document.querySelector("#arVideo");
+    const target      = document.querySelector("#posterTarget");
 
-    const startButton =
-      document.querySelector("#start");
+    /* Parallax wrapper */
+    const kiteGroup   = document.querySelector("#kiteGroup");
 
-    const intro =
-      document.querySelector("#intro");
-
-    const loading =
-      document.querySelector("#loading");
-
-    const scanning =
-      document.querySelector("#scanning");
-
-    const found =
-      document.querySelector("#found");
-
-    const shareBtn =
-      document.querySelector("#shareBtn");
-
-    const video =
-      document.querySelector("#film");
-
-    const arVideo =
-      document.querySelector("#arVideo");
-
-    const target =
-      document.querySelector("#posterTarget");
+    /* Frame bars */
+    const frameTop    = document.querySelector("#frameTop");
+    const frameBottom = document.querySelector("#frameBottom");
+    const frameLeft   = document.querySelector("#frameLeft");
+    const frameRight  = document.querySelector("#frameRight");
 
 
     /* ====================================================
        KITE REFERENCES
     ==================================================== */
 
-    const kiteOrange =
-      document.querySelector("#kiteOrangeAR");
-
-    const kiteWhite =
-      document.querySelector("#kiteWhiteAR");
-
-    const kiteBlue =
-      document.querySelector("#kiteBlueAR");
+    const kiteOrange  = document.querySelector("#kiteOrangeAR");
+    const kiteWhite   = document.querySelector("#kiteWhiteAR");
+    const kiteBlue    = document.querySelector("#kiteBlueAR");
 
     const kiteOrange2 = document.querySelector("#kiteOrange2");
-    const kiteBlue2 = document.querySelector("#kiteBlue2");
-    const kiteWhite2 = document.querySelector("#kiteWhite2");
+    const kiteBlue2   = document.querySelector("#kiteBlue2");
+    const kiteWhite2  = document.querySelector("#kiteWhite2");
     const kiteOrange3 = document.querySelector("#kiteOrange3");
-    const kiteBlue3 = document.querySelector("#kiteBlue3");
+    const kiteBlue3   = document.querySelector("#kiteBlue3");
 
     const extraKites = [
-      kiteOrange2,
-      kiteBlue2,
-      kiteWhite2,
-      kiteOrange3,
-      kiteBlue3
+      kiteOrange2, kiteBlue2, kiteWhite2, kiteOrange3, kiteBlue3
     ];
 
     const allKites = [
-      kiteOrange,
-      kiteWhite,
-      kiteBlue,
-      ...extraKites
+      kiteOrange, kiteWhite, kiteBlue, ...extraKites
     ];
 
     const sparks = [
@@ -624,126 +699,105 @@
 
 
     /* ====================================================
-       STATE
+       WIND TRAIL POOL
     ==================================================== */
 
-    let tracked = false;
+    const trailPool = [
+      ...document.querySelectorAll(".trail-dot")
+    ];
 
-    let fadeTimer = null;
-
-    let fadeAnimation = null;
-
-    /* rAF handle for the video fade-out on targetLost */
-    let fadeOutAnimation = null;
-
-    let kiteTimers = [];
-
-    /* setInterval handle for the kite loop */
-    let kiteLoopTimer = null;
-
-    /* AudioContext — created lazily on first user gesture */
-    let audioCtx = null;
+    let trailPoolIdx = 0;
 
 
     /* ====================================================
-       AUDIO — lazy init + helpers
+       INK PANEL REFERENCES
+    ==================================================== */
+
+    const inkPanels = [
+      ...document.querySelectorAll(".ink-panel")
+    ];
+
+
+    /* ====================================================
+       STATE
+    ==================================================== */
+
+    let tracked        = false;
+    let fadeTimer      = null;
+    let fadeAnimation  = null;
+    let fadeOutAnimation = null;
+    let kiteTimers     = [];
+    let kiteLoopTimer  = null;
+    let audioCtx       = null;
+
+    /* Gyroscope target offsets (updated by deviceorientation) */
+    let gyroTargetX = 0;
+    let gyroTargetY = 0;
+
+    /* rAF handle for the parallax loop */
+    let parallaxRaf = null;
+
+
+    /* ====================================================
+       AUDIO — lazy init + sound generators
     ==================================================== */
 
     function ensureAudio() {
       if (!audioCtx) {
-        audioCtx = new (window.AudioContext ||
-          window.webkitAudioContext)();
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
-      /* Resume if suspended (browser autoplay policy) */
-      if (audioCtx.state === "suspended") {
-        audioCtx.resume();
-      }
+      if (audioCtx.state === "suspended") audioCtx.resume();
       return audioCtx;
     }
 
-    /* A gentle bell/chime — played on poster detection */
+    /* Gentle bell chime — on poster detection */
     function playDetectionChime() {
       try {
         const ctx = ensureAudio();
-
-        /* Two slightly detuned sine waves for a rich bell tone */
-        const freqs = [880, 1108];
-        freqs.forEach((freq, i) => {
-          const osc = ctx.createOscillator();
+        [880, 1108].forEach((freq, i) => {
+          const osc  = ctx.createOscillator();
           const gain = ctx.createGain();
-
           osc.connect(gain);
           gain.connect(ctx.destination);
-
           osc.type = "sine";
           osc.frequency.setValueAtTime(freq, ctx.currentTime);
-
           gain.gain.setValueAtTime(0, ctx.currentTime);
-          gain.gain.linearRampToValueAtTime(
-            0.18 - i * 0.04,
-            ctx.currentTime + 0.01
-          );
-          gain.gain.exponentialRampToValueAtTime(
-            0.001,
-            ctx.currentTime + 1.2
-          );
-
+          gain.gain.linearRampToValueAtTime(0.18 - i * 0.04, ctx.currentTime + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
           osc.start(ctx.currentTime + i * 0.015);
           osc.stop(ctx.currentTime + 1.2);
         });
-      } catch (e) {
-        /* Audio errors are non-fatal */
-      }
+      } catch (e) {}
     }
 
-    /* A soft whoosh — played when kites launch */
+    /* Soft whoosh — when kites launch */
     function playWhoosh() {
       try {
-        const ctx = ensureAudio();
-
+        const ctx        = ensureAudio();
         const bufferSize = ctx.sampleRate * 0.6;
-        const buffer = ctx.createBuffer(
-          1,
-          bufferSize,
-          ctx.sampleRate
-        );
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-          data[i] = (Math.random() * 2 - 1);
-        }
+        const buffer     = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data       = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
 
         const source = ctx.createBufferSource();
         source.buffer = buffer;
 
-        /* Band-pass around 800 Hz gives a "whoosh" character */
         const filter = ctx.createBiquadFilter();
         filter.type = "bandpass";
         filter.frequency.setValueAtTime(800, ctx.currentTime);
-        filter.frequency.exponentialRampToValueAtTime(
-          200,
-          ctx.currentTime + 0.6
-        );
+        filter.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.6);
         filter.Q.value = 0.8;
 
         const gain = ctx.createGain();
         gain.gain.setValueAtTime(0, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(
-          0.22,
-          ctx.currentTime + 0.05
-        );
-        gain.gain.exponentialRampToValueAtTime(
-          0.001,
-          ctx.currentTime + 0.6
-        );
+        gain.gain.linearRampToValueAtTime(0.22, ctx.currentTime + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
 
         source.connect(filter);
         filter.connect(gain);
         gain.connect(ctx.destination);
-
         source.start(ctx.currentTime);
-      } catch (e) {
-        /* Non-fatal */
-      }
+      } catch (e) {}
     }
 
 
@@ -752,9 +806,7 @@
     ==================================================== */
 
     function vibrate() {
-      if (navigator.vibrate) {
-        navigator.vibrate([50, 30, 80]);
-      }
+      if (navigator.vibrate) navigator.vibrate([50, 30, 80]);
     }
 
 
@@ -763,37 +815,186 @@
     ==================================================== */
 
     function setVideoOpacity(value) {
-
-      const material =
-        arVideo.getAttribute("material");
-
+      const material = arVideo.getAttribute("material");
       material.opacity = value;
-
-      arVideo.setAttribute(
-        "material",
-        material
-      );
+      arVideo.setAttribute("material", material);
     }
 
 
     /* ====================================================
-       GENERIC MATERIAL OPACITY
+       GENERIC ENTITY OPACITY
     ==================================================== */
 
-    function setEntityOpacity(
-      entity,
-      value
-    ) {
-
-      const material =
-        entity.getAttribute("material");
-
+    function setEntityOpacity(entity, value) {
+      const material = entity.getAttribute("material");
       material.opacity = value;
+      entity.setAttribute("material", material);
+    }
 
-      entity.setAttribute(
-        "material",
-        material
-      );
+
+    /* ====================================================
+       GYROSCOPE PARALLAX
+       Reads device tilt and smoothly shifts kiteGroup
+       in the opposite direction — creating a layered
+       depth illusion between the kites and the poster.
+    ==================================================== */
+
+    function handleOrientation(e) {
+      /* gamma = left/right tilt  (-90 → 90 degrees)
+         beta  = front/back tilt  (-180 → 180 degrees) */
+      const gamma = Math.max(-30, Math.min(30, e.gamma || 0));
+      const beta  = Math.max(-30, Math.min(30, e.beta  || 0));
+
+      /* Negate gamma: tilt right → kites drift left (parallax) */
+      gyroTargetX = -(gamma / 30) * 0.065;
+      gyroTargetY =  (beta  / 30) * 0.045;
+    }
+
+    function runParallaxLoop() {
+      if (!tracked) {
+        kiteGroup.object3D.position.set(0, 0, 0);
+        parallaxRaf = null;
+        return;
+      }
+
+      const pos = kiteGroup.object3D.position;
+      /* Lerp toward target — smooth but responsive */
+      pos.x += (gyroTargetX - pos.x) * 0.06;
+      pos.y += (gyroTargetY - pos.y) * 0.06;
+
+      parallaxRaf = requestAnimationFrame(runParallaxLoop);
+    }
+
+    function startParallaxLoop() {
+      if (!parallaxRaf) {
+        parallaxRaf = requestAnimationFrame(runParallaxLoop);
+      }
+    }
+
+    function stopParallaxLoop() {
+      if (parallaxRaf) {
+        cancelAnimationFrame(parallaxRaf);
+        parallaxRaf = null;
+      }
+      kiteGroup.object3D.position.set(0, 0, 0);
+    }
+
+
+    /* ====================================================
+       WIND TRAIL SYSTEM
+       Round-robin borrows a sphere from the pool, places
+       it at the kite's current position, then fades it
+       out while drifting it upward — like a wisp of smoke
+       breaking off the kite's tail.
+       Uses direct Three.js material access for performance.
+    ==================================================== */
+
+    function spawnTrail(x, y, z, baseOpacity) {
+      const t = trailPool[trailPoolIdx % trailPool.length];
+      trailPoolIdx++;
+
+      t.object3D.position.set(x, y, z - 0.003);
+
+      const startX     = x;
+      const startY     = y;
+      const driftDir   = (trailPoolIdx % 2 === 0) ? 1 : -1;
+      const startTime  = performance.now();
+      const duration   = 560;
+
+      function fade() {
+        const p    = Math.min((performance.now() - startTime) / duration, 1);
+        const ease = 1 - Math.pow(1 - p, 2);     /* ease-out quad */
+
+        /* Drift: upward + slight sideways */
+        t.object3D.position.y = startY + ease * 0.022;
+        t.object3D.position.x = startX + driftDir * ease * 0.007;
+
+        /* Opacity: quick ramp-in, slow fade-out */
+        const op = p < 0.12
+          ? (p / 0.12) * baseOpacity
+          : baseOpacity * (1 - (p - 0.12) / 0.88);
+
+        /* Direct Three.js update — bypasses A-Frame's attribute
+           parsing overhead so this can run every rAF frame. */
+        const mesh = t.object3D.children[0];
+        if (mesh && mesh.material) {
+          mesh.material.opacity = Math.max(0, op);
+          mesh.material.needsUpdate = true;
+        }
+
+        if (p < 1) {
+          requestAnimationFrame(fade);
+        } else if (mesh && mesh.material) {
+          mesh.material.opacity = 0;
+          mesh.material.needsUpdate = true;
+          /* Park out of view until needed again */
+          t.object3D.position.set(0, -5, 0);
+        }
+      }
+
+      requestAnimationFrame(fade);
+    }
+
+
+    /* ====================================================
+       ANIMATED POSTER FRAME
+       Four bars expand from the center outward —
+       top/bottom expand horizontally, sides expand
+       vertically — then fade out on target loss.
+    ==================================================== */
+
+    function animateFrameIn() {
+      /* [axis, bar element, delay ms] */
+      const bars = [
+        ["x", frameTop,    0  ],
+        ["x", frameBottom, 55 ],
+        ["y", frameLeft,   120],
+        ["y", frameRight,  120]
+      ];
+
+      bars.forEach(([axis, el, delay]) => {
+        /* Make bar visible */
+        setEntityOpacity(el, 0.88);
+        /* Reset collapsed state */
+        el.object3D.scale[axis] = 0;
+
+        setTimeout(() => {
+          if (!tracked) return;
+          const start = performance.now();
+
+          function anim() {
+            const p = Math.min((performance.now() - start) / 380, 1);
+            /* Ease-out cubic */
+            el.object3D.scale[axis] = 1 - Math.pow(1 - p, 3);
+            if (p < 1) requestAnimationFrame(anim);
+          }
+
+          requestAnimationFrame(anim);
+        }, delay);
+      });
+    }
+
+    function animateFrameOut(duration) {
+      [frameTop, frameBottom, frameLeft, frameRight].forEach(el => {
+        const mat     = el.getAttribute("material");
+        const startOp = mat ? (mat.opacity || 0) : 0;
+        if (startOp <= 0) return;
+
+        const start = performance.now();
+
+        function anim() {
+          const p = Math.min((performance.now() - start) / duration, 1);
+          setEntityOpacity(el, startOp * (1 - p));
+          if (p < 1) {
+            requestAnimationFrame(anim);
+          } else {
+            /* Reset scale so it's ready for next targetFound */
+            el.object3D.scale.set(1, 1, 1);
+          }
+        }
+
+        requestAnimationFrame(anim);
+      });
     }
 
 
@@ -803,97 +1004,78 @@
 
     function resetKites() {
 
-      kiteTimers.forEach(
-        timer => clearTimeout(timer)
-      );
-
+      kiteTimers.forEach(timer => clearTimeout(timer));
       kiteTimers = [];
 
       const startPositions = {
-        kiteOrange: [-0.207, 0.165],
-        kiteWhite:  [-0.105, 0.190],
-        kiteBlue:   [ 0.135, 0.165],
-        kiteOrange2:[-0.36,  0.08 ],
-        kiteBlue2:  [ 0.34,  0.12 ],
-        kiteWhite2: [ 0.22,  0.25 ],
-        kiteOrange3:[-0.43,  0.20 ],
-        kiteBlue3:  [ 0.43,  0.24 ]
+        kiteOrange:  [-0.207, 0.165],
+        kiteWhite:   [-0.105, 0.190],
+        kiteBlue:    [ 0.135, 0.165],
+        kiteOrange2: [-0.36,  0.08 ],
+        kiteBlue2:   [ 0.34,  0.12 ],
+        kiteWhite2:  [ 0.22,  0.25 ],
+        kiteOrange3: [-0.43,  0.20 ],
+        kiteBlue3:   [ 0.43,  0.24 ]
       };
 
       const namedKites = [
-        ["kiteOrange", kiteOrange],
-        ["kiteWhite", kiteWhite],
-        ["kiteBlue", kiteBlue],
+        ["kiteOrange",  kiteOrange ],
+        ["kiteWhite",   kiteWhite  ],
+        ["kiteBlue",    kiteBlue   ],
         ["kiteOrange2", kiteOrange2],
-        ["kiteBlue2", kiteBlue2],
-        ["kiteWhite2", kiteWhite2],
+        ["kiteBlue2",   kiteBlue2  ],
+        ["kiteWhite2",  kiteWhite2 ],
         ["kiteOrange3", kiteOrange3],
-        ["kiteBlue3", kiteBlue3]
+        ["kiteBlue3",   kiteBlue3  ]
       ];
 
-      namedKites.forEach(
-        ([name, kite]) => {
+      namedKites.forEach(([name, kite]) => {
+        const [x, y] = startPositions[name];
+        kite.object3D.position.set(x, y, 0.025);
+        kite.object3D.rotation.z = Math.PI / 4;
+        setEntityOpacity(kite, 0);
+      });
 
-          const [x, y] =
-            startPositions[name];
+      sparks.forEach(spark => setEntityOpacity(spark, 0));
 
-          kite.object3D.position.set(
-            x,
-            y,
-            0.025
-          );
+      glints.forEach(glint => {
+        setEntityOpacity(glint, 0);
+        glint.object3D.scale.set(0.5, 0.5, 0.5);
+      });
 
-          kite.object3D.rotation.z =
-            Math.PI / 4;
-
-          setEntityOpacity(
-            kite,
-            0
-          );
+      /* Return all trail particles to their parked position */
+      trailPool.forEach(t => {
+        const mesh = t.object3D && t.object3D.children[0];
+        if (mesh && mesh.material) {
+          mesh.material.opacity = 0;
+          mesh.material.needsUpdate = true;
         }
-      );
-
-      sparks.forEach(
-        spark => {
-          setEntityOpacity(spark, 0);
-        }
-      );
-
-      glints.forEach(
-        glint => {
-          setEntityOpacity(glint, 0);
-          glint.object3D.scale.set(
-            0.5,
-            0.5,
-            0.5
-          );
-        }
-      );
+        t.object3D.position.set(0, -5, 0);
+      });
     }
 
 
     /* ====================================================
        ANIMATE ONE KITE
+       Modified to spawn wind trail particles at each
+       7% progress step while the kite is visible.
     ==================================================== */
 
     function animateKite(
       kite,
-      startX,
-      startY,
-      endX,
-      endY,
+      startX, startY,
+      endX,   endY,
       duration,
       delay
     ) {
-
       const timer = setTimeout(() => {
 
         if (!tracked) return;
 
         const startTime = performance.now();
-
-        const startZ = 0.025;
-        const endZ = 0.14;
+        const startZ    = 0.025;
+        const endZ      = 0.14;
+        let lastTrailProg = -0.09;
 
         function frame() {
 
@@ -904,55 +1086,36 @@
             1
           );
 
-          const eased =
-            1 - Math.pow(1 - progress, 3);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          const arc   = Math.sin(progress * Math.PI) * 0.055;
 
-          const arc =
-            Math.sin(progress * Math.PI) * 0.055;
+          const x = startX + (endX - startX) * eased;
+          const y = startY + (endY - startY) * eased + arc;
+          const z = startZ + (endZ - startZ) * eased;
 
-          const x =
-            startX +
-            (endX - startX) * eased;
-
-          const y =
-            startY +
-            (endY - startY) * eased +
-            arc;
-
-          const z =
-            startZ +
-            (endZ - startZ) * eased;
-
-          kite.object3D.position.set(
-            x,
-            y,
-            z
-          );
-
+          kite.object3D.position.set(x, y, z);
           kite.object3D.rotation.z =
-            Math.PI / 4 +
-            progress * Math.PI * 2.35;
+            Math.PI / 4 + progress * Math.PI * 2.35;
 
           let opacity;
+          if (progress < 0.08)       opacity = progress / 0.08;
+          else if (progress < 0.72)  opacity = 1;
+          else                       opacity = 1 - ((progress - 0.72) / 0.28);
 
-          if (progress < 0.08) {
-            opacity = progress / 0.08;
-          } else if (progress < 0.72) {
-            opacity = 1;
-          } else {
-            opacity =
-              1 -
-              ((progress - 0.72) / 0.28);
+          setEntityOpacity(kite, opacity);
+
+          /* Spawn a trail wisp every ~7% of travel distance
+             while the kite is meaningfully visible */
+          if (
+            progress - lastTrailProg >= 0.07 &&
+            progress > 0.06 &&
+            progress < 0.87
+          ) {
+            lastTrailProg = progress;
+            spawnTrail(x, y, z, opacity * 0.52);
           }
 
-          setEntityOpacity(
-            kite,
-            opacity
-          );
-
-          if (progress < 1) {
-            requestAnimationFrame(frame);
-          }
+          if (progress < 1) requestAnimationFrame(frame);
         }
 
         requestAnimationFrame(frame);
@@ -970,236 +1133,97 @@
     function launchKites() {
 
       resetKites();
-
-      /* Play whoosh sound */
       playWhoosh();
 
       /* Hero kites */
-      animateKite(
-        kiteOrange,
-        -0.207, 0.165,
-        -0.46, 0.60,
-        1700, 0
-      );
+      animateKite(kiteOrange, -0.207, 0.165, -0.46, 0.60, 1700,  0  );
+      animateKite(kiteWhite,  -0.105, 0.190, -0.02, 0.68, 1850,  140);
+      animateKite(kiteBlue,    0.135, 0.165,  0.46, 0.58, 1950,  260);
 
-      animateKite(
-        kiteWhite,
-        -0.105, 0.190,
-        -0.02, 0.68,
-        1850, 140
-      );
+      /* Secondary kites */
+      animateKite(kiteOrange2, -0.36, 0.08, -0.60, 0.34, 1450, 420 );
+      animateKite(kiteBlue2,    0.34, 0.12,  0.62, 0.42, 1500, 560 );
+      animateKite(kiteWhite2,   0.22, 0.25,  0.34, 0.66, 1650, 720 );
+      animateKite(kiteOrange3, -0.43, 0.20, -0.66, 0.50, 1350, 880 );
+      animateKite(kiteBlue3,    0.43, 0.24,  0.68, 0.54, 1450, 1020);
 
-      animateKite(
-        kiteBlue,
-        0.135, 0.165,
-        0.46, 0.58,
-        1950, 260
-      );
+      /* Atmospheric sparks */
+      sparks.forEach((spark, index) => {
+        const timer = setTimeout(() => {
+          if (!tracked) return;
 
-      /* Secondary kites move across the scene
-         at different depths and timings. */
-      animateKite(
-        kiteOrange2,
-        -0.36, 0.08,
-        -0.60, 0.34,
-        1450, 420
-      );
+          const start    = spark.object3D.position.clone();
+          const startTime = performance.now();
+          const duration  = 900 + index * 120;
+          const targetX   = start.x + (index % 2 === 0 ? -1 : 1) * (0.06 + index * 0.008);
+          const targetY   = start.y + 0.10 + index * 0.012;
 
-      animateKite(
-        kiteBlue2,
-        0.34, 0.12,
-        0.62, 0.42,
-        1500, 560
-      );
+          function sparkFrame() {
+            if (!tracked) return;
 
-      animateKite(
-        kiteWhite2,
-        0.22, 0.25,
-        0.34, 0.66,
-        1650, 720
-      );
+            const progress = Math.min(
+              (performance.now() - startTime) / duration,
+              1
+            );
+            const eased = 1 - Math.pow(1 - progress, 3);
 
-      animateKite(
-        kiteOrange3,
-        -0.43, 0.20,
-        -0.66, 0.50,
-        1350, 880
-      );
+            spark.object3D.position.x = start.x + (targetX - start.x) * eased;
+            spark.object3D.position.y = start.y + (targetY - start.y) * eased;
 
-      animateKite(
-        kiteBlue3,
-        0.43, 0.24,
-        0.68, 0.54,
-        1450, 1020
-      );
+            const opacity = progress < 0.15
+              ? progress / 0.15
+              : 1 - ((progress - 0.15) / 0.85);
 
-      /* Atmospheric sparks: quick upward drifting points. */
-      sparks.forEach(
-        (spark, index) => {
+            setEntityOpacity(spark, Math.max(0, opacity * 0.8));
 
-          const timer = setTimeout(
-            () => {
+            if (progress < 1) requestAnimationFrame(sparkFrame);
+          }
 
-              if (!tracked) return;
+          requestAnimationFrame(sparkFrame);
 
-              const start =
-                spark.object3D.position.clone();
+        }, 450 + index * 90);
 
-              const startTime =
-                performance.now();
+        kiteTimers.push(timer);
+      });
 
-              const duration =
-                900 + index * 120;
+      /* Glint pulses */
+      glints.forEach((glint, index) => {
+        const timer = setTimeout(() => {
+          if (!tracked) return;
 
-              const targetX =
-                start.x +
-                (index % 2 === 0 ? -1 : 1) *
-                (0.06 + index * 0.008);
+          const start    = performance.now();
+          const duration = 700;
 
-              const targetY =
-                start.y +
-                0.10 +
-                index * 0.012;
+          function glintFrame() {
+            if (!tracked) return;
 
-              function sparkFrame() {
+            const progress   = Math.min((performance.now() - start) / duration, 1);
+            const brightness = Math.sin(progress * Math.PI);
+            const scale      = 0.5 + brightness * 1.5;
 
-                if (!tracked) return;
+            glint.object3D.scale.set(scale, scale, scale);
+            setEntityOpacity(glint, brightness * 0.95);
 
-                const progress =
-                  Math.min(
-                    (performance.now() - startTime) /
-                    duration,
-                    1
-                  );
+            if (progress < 1) requestAnimationFrame(glintFrame);
+          }
 
-                const eased =
-                  1 -
-                  Math.pow(1 - progress, 3);
+          requestAnimationFrame(glintFrame);
 
-                spark.object3D.position.x =
-                  start.x +
-                  (targetX - start.x) *
-                  eased;
+        }, 600 + index * 430);
 
-                spark.object3D.position.y =
-                  start.y +
-                  (targetY - start.y) *
-                  eased;
-
-                let opacity;
-
-                if (progress < 0.15) {
-                  opacity = progress / 0.15;
-                } else {
-                  opacity = 1 - ((progress - 0.15) / 0.85);
-                }
-
-                setEntityOpacity(
-                  spark,
-                  Math.max(0, opacity * 0.8)
-                );
-
-                if (progress < 1) {
-                  requestAnimationFrame(
-                    sparkFrame
-                  );
-                }
-              }
-
-              requestAnimationFrame(
-                sparkFrame
-              );
-
-            },
-            450 + index * 90
-          );
-
-          kiteTimers.push(timer);
-        }
-      );
-
-      /* Glints pulse at different moments.
-         These are tiny flashes, not generic particles. */
-      glints.forEach(
-        (glint, index) => {
-
-          const timer = setTimeout(
-            () => {
-
-              if (!tracked) return;
-
-              const start =
-                performance.now();
-
-              const duration =
-                700;
-
-              function glintFrame() {
-
-                if (!tracked) return;
-
-                const progress =
-                  Math.min(
-                    (performance.now() - start) /
-                    duration,
-                    1
-                  );
-
-                const brightness =
-                  Math.sin(
-                    progress * Math.PI
-                  );
-
-                const scale =
-                  0.5 +
-                  brightness * 1.5;
-
-                glint.object3D.scale.set(
-                  scale,
-                  scale,
-                  scale
-                );
-
-                setEntityOpacity(
-                  glint,
-                  brightness * 0.95
-                );
-
-                if (progress < 1) {
-                  requestAnimationFrame(
-                    glintFrame
-                  );
-                }
-              }
-
-              requestAnimationFrame(
-                glintFrame
-              );
-
-            },
-            600 + index * 430
-          );
-
-          kiteTimers.push(timer);
-        }
-      );
+        kiteTimers.push(timer);
+      });
     }
 
 
     /* ====================================================
-       KITE LOOP — re-launches every ~4 seconds
-       while the target is tracked
+       KITE LOOP — re-launches every ~4.2 s while tracked
     ==================================================== */
 
     function startKiteLoop() {
       stopKiteLoop();
-      /* The first launch happens immediately in targetFound.
-         The loop fires subsequent launches. */
       kiteLoopTimer = setInterval(() => {
-        if (!tracked) {
-          stopKiteLoop();
-          return;
-        }
+        if (!tracked) { stopKiteLoop(); return; }
         launchKites();
       }, 4200);
     }
@@ -1213,73 +1237,63 @@
 
 
     /* ====================================================
-       FADE VIDEO IN
+       INK-BLEED PORTAL WIPE REVEAL
+       Snaps the 20 ink panels to opaque black (covering
+       the video), sets the video to full opacity behind
+       them, then dissolves the panels away in a randomised
+       order so the video "bleeds" through like ink washing
+       off paper.
     ==================================================== */
 
-    function fadeVideoIn() {
+    function inkBleedReveal() {
 
-      if (fadeAnimation) {
-        cancelAnimationFrame(
-          fadeAnimation
-        );
-      }
+      /* Video is visible immediately — panels conceal it */
+      setVideoOpacity(1);
 
-      /* Cancel any in-progress fade-out */
-      if (fadeOutAnimation) {
-        cancelAnimationFrame(fadeOutAnimation);
-        fadeOutAnimation = null;
-      }
+      /* Activate all panels */
+      inkPanels.forEach(panel => setEntityOpacity(panel, 0.97));
 
-      const startTime =
-        performance.now();
+      /* Randomise dissolve order */
+      const shuffled = [...inkPanels].sort(() => Math.random() - 0.5);
 
-      const duration =
-        1500;
+      shuffled.forEach((panel, i) => {
 
-      function animate() {
+        /* Stagger start times across a 750ms window */
+        const startDelay = (i / shuffled.length) * 750 + Math.random() * 160;
 
-        if (!tracked) {
-          return;
-        }
+        setTimeout(() => {
 
-        const elapsed =
-          performance.now() -
-          startTime;
+          /* If tracking was lost during the reveal, clear immediately */
+          if (!tracked) {
+            setEntityOpacity(panel, 0);
+            return;
+          }
 
-        const progress =
-          Math.min(
-            elapsed / duration,
-            1
-          );
+          const start = performance.now();
 
-        /* Smooth ease-in/out. */
+          function dissolve() {
+            if (!tracked) {
+              setEntityOpacity(panel, 0);
+              return;
+            }
 
-        const eased =
-          progress *
-          progress *
-          (3 - 2 * progress);
+            const p = Math.min((performance.now() - start) / 290, 1);
+            /* Ease-in — accelerates toward the end for a sharp ink-snap */
+            setEntityOpacity(panel, 0.97 * (1 - p * p));
 
-        setVideoOpacity(
-          eased
-        );
+            if (p < 1) requestAnimationFrame(dissolve);
+            else        setEntityOpacity(panel, 0);
+          }
 
-        if (progress < 1) {
+          requestAnimationFrame(dissolve);
 
-          fadeAnimation =
-            requestAnimationFrame(
-              animate
-            );
-
-        }
-      }
-
-      animate();
-
+        }, startDelay);
+      });
     }
 
 
     /* ====================================================
-       FADE VIDEO OUT (graceful)
+       FADE VIDEO OUT (graceful — used on targetLost)
     ==================================================== */
 
     function fadeVideoOut(onComplete) {
@@ -1289,7 +1303,7 @@
         fadeAnimation = null;
       }
 
-      const material = arVideo.getAttribute("material");
+      const material    = arVideo.getAttribute("material");
       const startOpacity = material ? material.opacity : 0;
 
       if (startOpacity <= 0) {
@@ -1297,7 +1311,7 @@
         return;
       }
 
-      const duration = 600;
+      const duration  = 600;
       const startTime = performance.now();
 
       function animate() {
@@ -1305,14 +1319,10 @@
           (performance.now() - startTime) / duration,
           1
         );
-
-        setVideoOpacity(
-          startOpacity * (1 - progress)
-        );
+        setVideoOpacity(startOpacity * (1 - progress));
 
         if (progress < 1) {
-          fadeOutAnimation =
-            requestAnimationFrame(animate);
+          fadeOutAnimation = requestAnimationFrame(animate);
         } else {
           fadeOutAnimation = null;
           video.pause();
@@ -1327,25 +1337,13 @@
 
 
     /* ====================================================
-       RESET VIDEO (instant — only called after fade-out)
+       RESET VIDEO (instant)
     ==================================================== */
 
     function resetVideo() {
-
-      if (fadeTimer) {
-        clearTimeout(fadeTimer);
-        fadeTimer = null;
-      }
-
-      if (fadeAnimation) {
-        cancelAnimationFrame(fadeAnimation);
-        fadeAnimation = null;
-      }
-
-      if (fadeOutAnimation) {
-        cancelAnimationFrame(fadeOutAnimation);
-        fadeOutAnimation = null;
-      }
+      if (fadeTimer)        { clearTimeout(fadeTimer); fadeTimer = null; }
+      if (fadeAnimation)    { cancelAnimationFrame(fadeAnimation);    fadeAnimation    = null; }
+      if (fadeOutAnimation) { cancelAnimationFrame(fadeOutAnimation); fadeOutAnimation = null; }
 
       video.pause();
       video.currentTime = 0;
@@ -1354,47 +1352,26 @@
 
 
     /* ====================================================
-       FADE ALL KITES OUT (graceful — used on targetLost)
+       FADE KITES OUT (graceful — on targetLost)
     ==================================================== */
 
     function fadeKitesOut(duration, onComplete) {
+
       const startTime = performance.now();
 
-      /* Capture current opacity for each kite */
-      const kiteStartOpacities = allKites.map(k => {
-        const m = k.getAttribute("material");
-        return m ? (m.opacity || 0) : 0;
-      });
-      const sparkStartOpacities = sparks.map(s => {
-        const m = s.getAttribute("material");
-        return m ? (m.opacity || 0) : 0;
-      });
-      const glintStartOpacities = glints.map(g => {
-        const m = g.getAttribute("material");
-        return m ? (m.opacity || 0) : 0;
-      });
+      const kiteStartOps  = allKites.map(k => { const m = k.getAttribute("material"); return m ? (m.opacity || 0) : 0; });
+      const sparkStartOps = sparks.map(s   => { const m = s.getAttribute("material"); return m ? (m.opacity || 0) : 0; });
+      const glintStartOps = glints.map(g   => { const m = g.getAttribute("material"); return m ? (m.opacity || 0) : 0; });
 
       function frame() {
-        const progress = Math.min(
-          (performance.now() - startTime) / duration,
-          1
-        );
+        const progress = Math.min((performance.now() - startTime) / duration, 1);
 
-        allKites.forEach((k, i) => {
-          setEntityOpacity(k, kiteStartOpacities[i] * (1 - progress));
-        });
-        sparks.forEach((s, i) => {
-          setEntityOpacity(s, sparkStartOpacities[i] * (1 - progress));
-        });
-        glints.forEach((g, i) => {
-          setEntityOpacity(g, glintStartOpacities[i] * (1 - progress));
-        });
+        allKites.forEach((k, i) => setEntityOpacity(k, kiteStartOps[i]  * (1 - progress)));
+        sparks.forEach(  (s, i) => setEntityOpacity(s, sparkStartOps[i] * (1 - progress)));
+        glints.forEach(  (g, i) => setEntityOpacity(g, glintStartOps[i] * (1 - progress)));
 
-        if (progress < 1) {
-          requestAnimationFrame(frame);
-        } else {
-          onComplete && onComplete();
-        }
+        if (progress < 1) requestAnimationFrame(frame);
+        else onComplete && onComplete();
       }
 
       requestAnimationFrame(frame);
@@ -1402,296 +1379,135 @@
 
 
     /* ====================================================
-       SHARE / SCREENSHOT
-    ==================================================== */
-
-    shareBtn.addEventListener("click", async () => {
-
-      try {
-        /* Capture the visible screen as a canvas frame */
-        const canvas = document.createElement("canvas");
-        const videoEl = document.querySelector("a-scene canvas") ||
-          document.querySelector("canvas");
-
-        if (!videoEl) {
-          alert("Screenshot not available on this device.");
-          return;
-        }
-
-        canvas.width = videoEl.width;
-        canvas.height = videoEl.height;
-        const ctx2d = canvas.getContext("2d");
-        ctx2d.drawImage(videoEl, 0, 0);
-
-        canvas.toBlob(async (blob) => {
-          if (!blob) return;
-
-          const file = new File(
-            [blob],
-            "ar-moment.png",
-            { type: "image/png" }
-          );
-
-          /* Use Web Share API (mobile) if available */
-          if (
-            navigator.canShare &&
-            navigator.canShare({ files: [file] })
-          ) {
-            await navigator.share({
-              title: "AR Experience",
-              text: "Check out this AR poster experience!",
-              files: [file]
-            });
-          } else {
-            /* Fallback: download the image */
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "ar-moment.png";
-            a.click();
-            setTimeout(() => URL.revokeObjectURL(url), 5000);
-          }
-        }, "image/png");
-
-      } catch (err) {
-        console.warn("Share failed:", err);
-      }
-    });
-
-
-    /* ====================================================
        START AR
     ==================================================== */
 
-    startButton.addEventListener(
-      "click",
-      async () => {
+    startButton.addEventListener("click", async () => {
 
-        /* Resume / create AudioContext on this user gesture */
-        ensureAudio();
+      /* Unlock AudioContext on this user gesture */
+      ensureAudio();
 
-        intro.style.display =
-          "none";
-
-        loading.style.display =
-          "flex";
-
-
-        const mindar =
-          scene.systems[
-            "mindar-image-system"
-          ];
-
-
+      /* Request gyroscope permission (required on iOS 13+) */
+      if (
+        typeof DeviceOrientationEvent !== "undefined" &&
+        typeof DeviceOrientationEvent.requestPermission === "function"
+      ) {
         try {
-
-          await mindar.start();
-
-
-          loading.style.display =
-            "none";
-
-
-          scanning.style.display =
-            "block";
-
+          const state = await DeviceOrientationEvent.requestPermission();
+          if (state === "granted") {
+            window.addEventListener("deviceorientation", handleOrientation);
+          }
+        } catch (e) {
+          /* Permission denied or unavailable — parallax simply won't run */
         }
-
-        catch (error) {
-
-          console.error(
-            error
-          );
-
-
-          loading.innerHTML =
-            "Unable to access the camera.";
-
-        }
-
+      } else {
+        /* Android + non-iOS browsers don't need a permission prompt */
+        window.addEventListener("deviceorientation", handleOrientation);
       }
-    );
+
+      intro.style.display   = "none";
+      loading.style.display = "flex";
+
+      const mindar = scene.systems["mindar-image-system"];
+
+      try {
+        await mindar.start();
+        loading.style.display  = "none";
+        scanning.style.display = "flex";
+      } catch (error) {
+        console.error(error);
+        loading.innerHTML = "Unable to access the camera.";
+      }
+    });
 
 
     /* ====================================================
        POSTER FOUND
     ==================================================== */
 
-    target.addEventListener(
-      "targetFound",
-      () => {
+    target.addEventListener("targetFound", () => {
 
-        console.log(
-          "POSTER FOUND"
-        );
+      console.log("POSTER FOUND");
 
+      if (tracked) return;
 
-        /* Ignore duplicate events while
-           this target is already active. */
+      tracked = true;
 
-        if (tracked) {
-          return;
-        }
+      scanning.style.display = "none";
 
+      found.style.display = "block";
+      setTimeout(() => { found.style.display = "none"; }, 1200);
 
-        tracked = true;
+      /* Haptic + chime */
+      vibrate();
+      playDetectionChime();
 
+      /* Animate the frame border in */
+      animateFrameIn();
 
-        scanning.style.display =
-          "none";
+      /* Reset flying elements */
+      resetKites();
+      setVideoOpacity(0);
 
+      /* Start video (invisible until ink-bleed reveal) */
+      video.currentTime = 0;
+      video.play().catch(err => console.log("Video playback:", err));
 
-        found.style.display =
-          "block";
+      /* Launch kites immediately, then loop */
+      launchKites();
+      startKiteLoop();
 
+      /* Start gyroscope parallax */
+      startParallaxLoop();
 
-        setTimeout(
-          () => {
-
-            found.style.display =
-              "none";
-
-          },
-          1200
-        );
-
-
-        /* Show share button */
-        shareBtn.style.display = "flex";
-
-
-        /* Haptic pulse */
-        vibrate();
-
-        /* Detection chime */
-        playDetectionChime();
-
-
-        /* -----------------------------------------------
-           RESET THE EFFECT STATE
-        ------------------------------------------------ */
-
-        resetKites();
-
-        setVideoOpacity(0);
-
-
-        /* -----------------------------------------------
-           START VIDEO IMMEDIATELY.
-
-           It stays invisible while the
-           original poster remains visible.
-        ------------------------------------------------ */
-
-        video.currentTime = 0;
-
-
-        video.play().catch(
-          error => {
-
-            console.log(
-              "Video playback:",
-              error
-            );
-
-          }
-        );
-
-
-        /* -----------------------------------------------
-           KITES ESCAPE.
-
-           They begin while the printed poster
-           is still visible.
-        ------------------------------------------------ */
-
-        launchKites();
-
-        /* Start the repeating loop */
-        startKiteLoop();
-
-
-        /* -----------------------------------------------
-           VIDEO TRANSITION.
-
-           The 2-second delay is preserved
-           from your working V3.
-        ------------------------------------------------ */
-
-        fadeTimer =
-          setTimeout(
-            () => {
-
-              if (!tracked) {
-                return;
-              }
-
-
-              fadeVideoIn();
-
-            },
-            2000
-          );
-
-      }
-    );
+      /* Ink-bleed reveal after 2s (replacing plain fadeVideoIn) */
+      fadeTimer = setTimeout(() => {
+        if (!tracked) return;
+        inkBleedReveal();
+      }, 2000);
+    });
 
 
     /* ====================================================
        POSTER LOST — graceful fade-out
     ==================================================== */
 
-    target.addEventListener(
-      "targetLost",
-      () => {
+    target.addEventListener("targetLost", () => {
 
-        console.log(
-          "POSTER LOST"
-        );
+      console.log("POSTER LOST");
 
+      tracked = false;
 
-        tracked = false;
+      /* Stop all repeating loops immediately */
+      stopKiteLoop();
+      stopParallaxLoop();
 
-        /* Stop the kite loop immediately */
-        stopKiteLoop();
+      /* Cancel any pending kite timers */
+      kiteTimers.forEach(t => clearTimeout(t));
+      kiteTimers = [];
 
-        /* Cancel any pending kite timers */
-        kiteTimers.forEach(t => clearTimeout(t));
-        kiteTimers = [];
+      /* Cancel pending video-start timer */
+      if (fadeTimer) { clearTimeout(fadeTimer); fadeTimer = null; }
 
-        /* Cancel any pending video-start timer */
-        if (fadeTimer) {
-          clearTimeout(fadeTimer);
-          fadeTimer = null;
-        }
+      /* Fade frame out */
+      animateFrameOut(400);
 
+      /* Fade kites out, then hard-reset them */
+      fadeKitesOut(400, () => resetKites());
 
-        /* Fade kites out over 400ms, then fully reset */
-        fadeKitesOut(400, () => {
-          resetKites();
-        });
+      /* Fade video out */
+      fadeVideoOut(() => {});
 
-        /* Fade video out over 600ms, then reset */
-        fadeVideoOut(() => {
-          /* resetVideo already ran inside fadeVideoOut */
-        });
+      /* Clear any in-progress ink panels immediately */
+      inkPanels.forEach(panel => setEntityOpacity(panel, 0));
 
+      /* Show scanning UI after the fade so it doesn't flash */
+      setTimeout(() => {
+        if (!tracked) scanning.style.display = "flex";
+      }, 350);
 
-        /* Show scanning UI after a brief delay
-           so it doesn't flash over the fade */
-        setTimeout(() => {
-          if (!tracked) {
-            scanning.style.display = "block";
-            shareBtn.style.display = "none";
-          }
-        }, 350);
-
-
-        found.style.display =
-          "none";
-
-      }
-    );
+      found.style.display = "none";
+    });
 
 
     /* ====================================================
@@ -1699,8 +1515,8 @@
     ==================================================== */
 
     resetKites();
-
     setVideoOpacity(0);
+    inkPanels.forEach(panel => setEntityOpacity(panel, 0));
 
   </script>
 
