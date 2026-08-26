@@ -9,7 +9,7 @@
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
   >
 
-  <title>AR Experience</title>
+  <title>AR Poster Experience</title>
 
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
@@ -22,12 +22,12 @@
     body {
       margin: 0;
       overflow: hidden;
-      background: black;
+      background: #050505;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
     /* =====================================================
-       REDESIGNED INTRO
+       PORTFOLIO ENTRY PAGE - "FUN & INTERESTING"
     ===================================================== */
     #intro {
       position: fixed;
@@ -41,57 +41,114 @@
 
       padding: 30px;
       text-align: center;
-
       color: white;
-      background: radial-gradient(circle at center, #1a1a2e 0%, #050505 100%);
+
+      /* Animated cosmic mesh background */
+      background: linear-gradient(45deg, #0f0c29, #302b63, #24243e, #0a0a0a);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+    }
+
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* Floating glowing orbs behind the text */
+    .bg-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(60px);
+      z-index: -1;
+      animation: floatOrb 8s infinite alternate ease-in-out;
+    }
+    .bg-orb-1 {
+      width: 250px; height: 250px;
+      background: rgba(255, 126, 95, 0.25);
+      top: 10%; left: -10%;
+      animation-delay: 0s;
+    }
+    .bg-orb-2 {
+      width: 200px; height: 200px;
+      background: rgba(0, 212, 255, 0.25);
+      bottom: 10%; right: -5%;
+      animation-delay: -4s;
+    }
+
+    @keyframes floatOrb {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(30px, -50px) scale(1.1); }
     }
 
     .intro-logo {
-      width: 72px;
-      height: 72px;
-      margin-bottom: 24px;
-      border-radius: 22px;
-      background: linear-gradient(135deg, #ff7e5f, #feb47b);
-      box-shadow: 0 10px 35px rgba(255, 126, 95, 0.35);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 32px;
+      width: 96px;
+      height: 96px;
+      margin-bottom: 30px;
+      border-radius: 26px;
+      box-shadow: 0 15px 45px rgba(255, 126, 95, 0.4), inset 0 0 0 1px rgba(255,255,255,0.2);
+      object-fit: cover;
+      animation: floatLogo 4s ease-in-out infinite;
+    }
+
+    @keyframes floatLogo {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
     }
 
     #intro h1 {
-      margin: 0 0 12px;
-      font-size: 32px;
+      margin: 0 0 16px;
+      font-size: 38px;
       font-weight: 800;
       letter-spacing: -0.5px;
-      background: linear-gradient(180deg, #ffffff 0%, #a0a0b0 100%);
+      background: linear-gradient(180deg, #ffffff 0%, #dcdcdc 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      text-shadow: 0 4px 15px rgba(0,0,0,0.3);
     }
 
     #intro p {
-      max-width: 290px;
+      max-width: 310px;
       margin: 0 0 45px;
       line-height: 1.6;
-      font-size: 16px;
-      color: #9090a0;
+      font-size: 17px;
+      color: rgba(255,255,255,0.85);
+      text-shadow: 0 2px 10px rgba(0,0,0,0.5);
     }
 
     #start {
-      padding: 16px 40px;
+      position: relative;
+      overflow: hidden;
+      padding: 18px 46px;
       border: none;
       border-radius: 999px;
       background: white;
       color: #050505;
-      font-size: 17px;
-      font-weight: 700;
+      font-size: 18px;
+      font-weight: 800;
       cursor: pointer;
-      box-shadow: 0 8px 25px rgba(255, 255, 255, 0.25);
+      box-shadow: 0 10px 30px rgba(255, 255, 255, 0.25);
       transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     }
 
+    /* Sweeping shine effect on button */
+    #start::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%; width: 50%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+      transform: skewX(-20deg);
+      animation: sweepShine 3s infinite;
+    }
+
+    @keyframes sweepShine {
+      0% { left: -100%; }
+      20% { left: 200%; }
+      100% { left: 200%; }
+    }
+
     #start:active {
-      transform: scale(0.94);
+      transform: scale(0.92);
       box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15);
     }
 
@@ -111,7 +168,7 @@
     }
 
     /* =====================================================
-       SCANNING UI — centered viewfinder
+       SCANNING UI
     ===================================================== */
     #scanning {
       position: fixed;
@@ -238,12 +295,20 @@
 
 <body>
 
-  <!-- REDESIGNED INTRO -->
+  <!-- =====================================================
+       NEW PORTFOLIO ENTRY PAGE
+  ====================================================== -->
   <div id="intro">
-    <div class="intro-logo">✨</div>
-    <h1>AR Poster</h1>
-    <p>Point your camera at the poster to bring it to life in 3D.</p>
-    <button id="start">Start Experience</button>
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+    
+    <!-- Using the newly generated custom logo -->
+    <img src="./logo.jpg" alt="AR Logo" class="intro-logo">
+    
+    <h1>Into the Void</h1>
+    <p>Point your camera at the poster to reveal the hidden 3D dimension.</p>
+    
+    <button id="start">Enter AR Experience</button>
   </div>
 
   <!-- LOADING -->
@@ -266,7 +331,11 @@
   <!-- FOUND -->
   <div id="found">✓ Poster detected</div>
 
-
+  <!-- 
+    REMOVED manual filters (filterMinCF, filterBeta, missTolerance) 
+    so MindAR can use its adaptive defaults for much smoother angled/tilt tracking.
+    ADDED antialias and highp precision to the renderer for jitter reduction.
+  -->
   <a-scene
     mindar-image="
       imageTargetSrc: ./targets.mind;
@@ -274,13 +343,9 @@
       uiLoading: no;
       uiScanning: no;
       uiError: yes;
-      warmupTolerance: 5;
-      missTolerance: 10;
-      filterMinCF: 0.001;
-      filterBeta: 1000;
     "
     color-space="sRGB"
-    renderer="colorManagement: true, physicallyCorrectLights"
+    renderer="colorManagement: true, physicallyCorrectLights, antialias: true, logarithmicDepthBuffer: true, precision: highp"
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false"
   >
@@ -308,8 +373,7 @@
     <a-entity id="posterTarget" mindar-image-target="targetIndex: 0">
 
       <!-- ================================================
-           GYROSCOPE PARALLAX (ON STEROIDS)
-           Separated into two layers for massive depth.
+           GYROSCOPE PARALLAX
       ================================================= -->
 
       <!-- BACKGROUND LAYER (Moves slightly: 0.04 multiplier) -->
@@ -370,8 +434,6 @@
 
       <!-- ================================================
            ANIMATED ELEGANT THIN FRAME
-           Replaced thick cartoony lines with sleek 0.003
-           thick lines that trace the border perfectly.
       ================================================= -->
       <a-plane id="frameTop" width="1.0" height="0.003" position="0 0.2815 0.013" material="shader: flat; color: #FFF; transparent: true; opacity: 0;" scale="0 1 1"></a-plane>
       <a-plane id="frameBottom" width="1.0" height="0.003" position="0 -0.2815 0.013" material="shader: flat; color: #FFF; transparent: true; opacity: 0;" scale="0 1 1"></a-plane>
@@ -399,7 +461,7 @@
     /* ====================================================
        VERSION / CACHE BUSTING
     ==================================================== */
-    const APP_VERSION = "2026-08-26-v4";
+    const APP_VERSION = "2026-08-26-v5";
 
     (function bustCache() {
       const stored = localStorage.getItem("ar_version");
@@ -556,7 +618,7 @@
 
 
     /* ====================================================
-       MULTI-LAYER GYRO PARALLAX (ON STEROIDS)
+       MULTI-LAYER GYRO PARALLAX
     ==================================================== */
     function handleOrientation(e) {
       /* Clamp tilt to 45 deg, normalize to [-1, 1] */
@@ -574,12 +636,12 @@
         return;
       }
 
-      /* Front layer moves MASSIVELY (Multiplier: 0.20) */
+      /* Front layer moves MASSIVELY */
       const fPos = kiteGroupFront.object3D.position;
       fPos.x += ((gyroTargetX * 0.20) - fPos.x) * 0.08;
       fPos.y += ((gyroTargetY * 0.14) - fPos.y) * 0.08;
 
-      /* Back layer moves SLIGHTLY (Multiplier: 0.04) */
+      /* Back layer moves SLIGHTLY */
       const bPos = kiteGroupBack.object3D.position;
       bPos.x += ((gyroTargetX * 0.04) - bPos.x) * 0.05;
       bPos.y += ((gyroTargetY * 0.03) - bPos.y) * 0.05;
@@ -810,7 +872,7 @@
 
 
     /* ====================================================
-       SMOOTH CINEMATIC SCALE REVEAL (Replaces Ink Bleed)
+       SMOOTH CINEMATIC SCALE REVEAL
     ==================================================== */
     function smoothCinematicReveal() {
       if (revealRaf) cancelAnimationFrame(revealRaf);
@@ -820,20 +882,17 @@
       setVideoOpacity(0);
       
       const start = performance.now();
-      const duration = 1200; /* Buttery smooth 1.2s reveal */
+      const duration = 1200;
 
       function anim() {
         if (!tracked) { setVideoOpacity(0); return; }
         const p = Math.min((performance.now() - start) / duration, 1);
         
-        /* Ease-out exponential */
         const ease = p === 1 ? 1 : 1 - Math.pow(2, -10 * p);
         
-        /* Scale smoothly to 1.0 */
         const currentScale = 0.85 + (0.15 * ease);
         arVideo.object3D.scale.set(currentScale, currentScale, 1);
         
-        /* Opacity fades in faster (completes by 60% mark) */
         const opEase = Math.min(p / 0.6, 1);
         setVideoOpacity(opEase);
 
@@ -899,15 +958,11 @@
     startButton.addEventListener("click", async () => {
       ensureAudio();
 
-      /* 
-         CRITICAL IOS FIX: Video must be unlocked via direct 
-         user interaction before we can play it later in AR.
-      */
       video.muted = true; 
       video.play().then(() => {
         video.pause();
         video.currentTime = 0;
-        video.muted = false; /* Unmute so audio plays when revealed */
+        video.muted = false;
       }).catch(err => console.warn("Video unlock failed:", err));
 
       if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
@@ -951,7 +1006,6 @@
       resetKites();
       setVideoOpacity(0);
 
-      /* Video starts playing invisibly */
       video.currentTime = 0;
       video.play().catch(err => console.log("Video playback:", err));
 
@@ -959,7 +1013,6 @@
       startKiteLoop();
       startParallaxLoop();
 
-      /* Smooth Cinematic Scale-Reveal after 2s */
       fadeTimer = setTimeout(() => {
         if (!tracked) return;
         smoothCinematicReveal();
