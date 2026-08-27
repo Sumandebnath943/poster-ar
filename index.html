@@ -14,40 +14,6 @@
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
-  <!-- Custom A-Frame Components for 3D Portal Illusion -->
-  <script>
-    // The Hider Material makes planes act as "invisibility cloaks".
-    // They hide anything rendered behind them by writing to the depth buffer,
-    // but they remain totally transparent so the real-world camera feed shows through.
-    AFRAME.registerComponent('hider-material', {
-      init: function () {
-        const apply = () => {
-          const mesh = this.el.getObject3D('mesh');
-          if (mesh && mesh.material) {
-            mesh.material.colorWrite = false;
-            mesh.material.depthWrite = true;
-            mesh.renderOrder = -1; // Render first to block things behind it
-          }
-        };
-        this.el.addEventListener('model-loaded', apply);
-        apply();
-      }
-    });
-
-    // Ensures the video renders after the hider mask
-    AFRAME.registerComponent('render-order', {
-      schema: {type: 'number', default: 1},
-      init: function () {
-        const apply = () => {
-          const mesh = this.el.getObject3D('mesh');
-          if (mesh) mesh.renderOrder = this.data;
-        };
-        this.el.addEventListener('model-loaded', apply);
-        apply();
-      }
-    });
-  </script>
-
   <style>
     * {
       box-sizing: border-box;
@@ -61,7 +27,7 @@
     }
 
     /* =====================================================
-       PORTFOLIO ENTRY PAGE - "FUN & INTERESTING"
+       PORTFOLIO ENTRY PAGE
     ===================================================== */
     #intro {
       position: fixed;
@@ -77,7 +43,6 @@
       text-align: center;
       color: white;
 
-      /* Animated cosmic mesh background */
       background: linear-gradient(45deg, #0f0c29, #302b63, #24243e, #0a0a0a);
       background-size: 400% 400%;
       animation: gradientBG 15s ease infinite;
@@ -89,7 +54,6 @@
       100% { background-position: 0% 50%; }
     }
 
-    /* Floating glowing orbs behind the text */
     .bg-orb {
       position: absolute;
       border-radius: 50%;
@@ -165,7 +129,6 @@
       transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     }
 
-    /* Sweeping shine effect on button */
     #start::after {
       content: '';
       position: absolute;
@@ -201,9 +164,7 @@
       letter-spacing: 1px;
     }
 
-    /* =====================================================
-       SCANNING UI
-    ===================================================== */
+    /* SCANNING UI */
     #scanning {
       position: fixed;
       inset: 0;
@@ -358,7 +319,10 @@
 
   <div id="found">✓ Poster detected</div>
 
-  <!-- A-Frame Scene -->
+  <!-- 
+    REVERTED RENDERER: Removed antialias and highp to stop camera blur/smudge on mobile.
+    RESTORED TRACKING: Added filterMinCF 0.0001 and filterBeta 0.001 to keep tracking snappy but stable.
+  -->
   <a-scene
     mindar-image="
       imageTargetSrc: ./targets.mind;
@@ -366,9 +330,12 @@
       uiLoading: no;
       uiScanning: no;
       uiError: yes;
+      filterMinCF: 0.0001;
+      filterBeta: 0.001;
+      missTolerance: 5;
     "
     color-space="sRGB"
-    renderer="colorManagement: true, physicallyCorrectLights, antialias: true, logarithmicDepthBuffer: true, precision: highp"
+    renderer="colorManagement: true;"
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false"
   >
@@ -394,52 +361,23 @@
     <a-entity id="posterTarget" mindar-image-target="targetIndex: 0">
 
       <!-- ================================================
-           1. THE INVISIBILITY CLOAK (OCCLUSION MASK)
-           These planes sit flush with the poster (z=0.001)
-           and act as a window frame. They hide the video
-           when viewed from steep angles, fixing proportion skew!
-      ================================================= -->
-      <a-entity id="occlusionMask" position="0 0 0.001">
-        <a-plane width="10" height="10" position="-5.5 0 0" hider-material></a-plane>
-        <a-plane width="10" height="10" position="5.5 0 0" hider-material></a-plane>
-        <a-plane width="10" height="10" position="0 5.28125 0" hider-material></a-plane>
-        <a-plane width="10" height="10" position="0 -5.28125 0" hider-material></a-plane>
-      </a-entity>
-
-      <!-- ================================================
-           2. THE 3D PORTAL WALLS
-           Creates the illusion of physical depth inside the wall.
-      ================================================= -->
-      <a-entity id="portalWalls" position="0 0 0">
-        <!-- Top Wall -->
-        <a-plane class="portal-wall" width="1" height="0.1" position="0 0.28125 -0.05" rotation="90 0 0" material="color: #030305; shader: flat; transparent: true; opacity: 0;"></a-plane>
-        <!-- Bottom Wall -->
-        <a-plane class="portal-wall" width="1" height="0.1" position="0 -0.28125 -0.05" rotation="-90 0 0" material="color: #030305; shader: flat; transparent: true; opacity: 0;"></a-plane>
-        <!-- Left Wall -->
-        <a-plane class="portal-wall" width="0.1" height="0.5625" position="-0.5 0 -0.05" rotation="0 90 0" material="color: #030305; shader: flat; transparent: true; opacity: 0;"></a-plane>
-        <!-- Right Wall -->
-        <a-plane class="portal-wall" width="0.1" height="0.5625" position="0.5 0 -0.05" rotation="0 -90 0" material="color: #030305; shader: flat; transparent: true; opacity: 0;"></a-plane>
-      </a-entity>
-
-      <!-- ================================================
-           3. THE DEEP VIDEO
-           Pushed backward into negative Z space.
-           Rendered AFTER the mask to enable the illusion.
+           VIDEO
+           Restored to perfectly flat against the target (z=0.005)
+           This fixes the clipping and black borders completely.
       ================================================= -->
       <a-video
         id="arVideo"
         src="#film"
-        width="1.2"
-        height="0.675"
-        position="0 0 -0.2"
+        width="1"
+        height="0.5625"
+        position="0 0 0.005"
         material="shader: flat; transparent: true; opacity: 0;"
-        render-order="1"
+        scale="0.95 0.95 1"
       ></a-video>
 
 
       <!-- ================================================
-           4. GYROSCOPE PARALLAX
-           (Renders on top of the mask at positive Z)
+           GYROSCOPE PARALLAX
       ================================================= -->
       <!-- BACKGROUND LAYER -->
       <a-entity id="kiteGroupBack">
@@ -499,10 +437,10 @@
       <!-- ================================================
            THIN ELEGANT FRAME
       ================================================= -->
-      <a-plane id="frameTop" width="1.0" height="0.003" position="0 0.2815 0.013" material="shader: flat; color: #FFF; transparent: true; opacity: 0;" scale="0 1 1"></a-plane>
-      <a-plane id="frameBottom" width="1.0" height="0.003" position="0 -0.2815 0.013" material="shader: flat; color: #FFF; transparent: true; opacity: 0;" scale="0 1 1"></a-plane>
-      <a-plane id="frameLeft" width="0.003" height="0.563" position="-0.5015 0 0.013" material="shader: flat; color: #FFF; transparent: true; opacity: 0;" scale="1 0 1"></a-plane>
-      <a-plane id="frameRight" width="0.003" height="0.563" position="0.5015 0 0.013" material="shader: flat; color: #FFF; transparent: true; opacity: 0;" scale="1 0 1"></a-plane>
+      <a-plane id="frameTop" width="1.0" height="0.003" position="0 0.2815 0.006" material="shader: flat; color: #FFF; transparent: true; opacity: 0;" scale="0 1 1"></a-plane>
+      <a-plane id="frameBottom" width="1.0" height="0.003" position="0 -0.2815 0.006" material="shader: flat; color: #FFF; transparent: true; opacity: 0;" scale="0 1 1"></a-plane>
+      <a-plane id="frameLeft" width="0.003" height="0.563" position="-0.5015 0 0.006" material="shader: flat; color: #FFF; transparent: true; opacity: 0;" scale="1 0 1"></a-plane>
+      <a-plane id="frameRight" width="0.003" height="0.563" position="0.5015 0 0.006" material="shader: flat; color: #FFF; transparent: true; opacity: 0;" scale="1 0 1"></a-plane>
 
     </a-entity>
   </a-scene>
@@ -511,7 +449,7 @@
     /* ====================================================
        VERSION / CACHE BUSTING
     ==================================================== */
-    const APP_VERSION = "2026-08-27-v6";
+    const APP_VERSION = "2026-08-27-v7";
 
     (function bustCache() {
       const stored = localStorage.getItem("ar_version");
@@ -536,8 +474,6 @@
     const video       = document.querySelector("#film");
     const arVideo     = document.querySelector("#arVideo");
     const target      = document.querySelector("#posterTarget");
-
-    const portalWalls = [...document.querySelectorAll(".portal-wall")];
 
     const kiteGroupFront = document.querySelector("#kiteGroupFront");
     const kiteGroupBack  = document.querySelector("#kiteGroupBack");
@@ -650,22 +586,22 @@
     }
 
     /* ====================================================
-       INTERACTIVE TOUCH PARTICLES (THE "WOW" FACTOR)
+       INTERACTIVE TOUCH PARTICLES
     ==================================================== */
-    function spawnPortalBurst() {
+    function spawnMagicBurst() {
       for(let i=0; i<25; i++) {
         const t = document.createElement('a-sphere');
         t.setAttribute('radius', '0.004');
         const color = Math.random() > 0.5 ? '#00d4ff' : '#ff7e5f';
         t.setAttribute('material', `shader: flat; color: ${color}; transparent: true; opacity: 1`);
-        t.setAttribute('position', `0 0 -0.1`);
+        t.setAttribute('position', `0 0 0.01`);
         target.appendChild(t);
 
         const angle = Math.random() * Math.PI * 2;
         const spread = 0.15 + Math.random() * 0.35;
         const targetX = Math.cos(angle) * spread;
         const targetY = Math.sin(angle) * spread;
-        const targetZ = 0.15 + Math.random() * 0.5; // Blast out of the portal toward user
+        const targetZ = 0.1 + Math.random() * 0.3; // Blast outwards
 
         const duration = 1200 + Math.random() * 800;
         const start = performance.now();
@@ -677,7 +613,7 @@
           t.object3D.position.set(
             targetX * ease,
             targetY * ease,
-            -0.1 + (targetZ - (-0.1)) * ease
+            0.01 + (targetZ - 0.01) * ease
           );
           
           const mesh = t.object3D.children[0];
@@ -693,16 +629,15 @@
       }
     }
 
-    /* Interactive touch triggers magic burst */
     window.addEventListener('touchstart', (e) => {
       if (!tracked) return;
       vibrate();
       playWhoosh();
-      spawnPortalBurst();
+      spawnMagicBurst();
     });
     window.addEventListener('mousedown', (e) => {
       if (!tracked) return;
-      spawnPortalBurst();
+      spawnMagicBurst();
     });
 
 
@@ -935,7 +870,7 @@
           function sparkFrame() {
             if (!tracked) return;
             const progress = Math.min((performance.now() - startTime) / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
+            const eased = 1 - Math.pow(1 - p, 3);
             spark.object3D.position.x = start.x + (targetX - start.x) * eased;
             spark.object3D.position.y = start.y + (targetY - start.y) * eased;
             const opacity = progress < 0.15 ? progress / 0.15 : 1 - ((progress - 0.15) / 0.85);
@@ -976,33 +911,28 @@
 
 
     /* ====================================================
-       THE DEEP PORTAL REVEAL
+       FLAT CINEMATIC REVEAL (Fixes perspective cutoffs)
     ==================================================== */
-    function triggerDeepPortalReveal() {
+    function smoothCinematicReveal() {
       if (revealRaf) cancelAnimationFrame(revealRaf);
       
-      /* Video starts deep inside the wall */
-      arVideo.object3D.position.set(0, 0, -0.4);
+      arVideo.object3D.position.set(0, 0, 0.005);
+      arVideo.object3D.scale.set(0.95, 0.95, 1);
       setVideoOpacity(0);
-      portalWalls.forEach(wall => setEntityOpacity(wall, 0));
       
       const start = performance.now();
-      const duration = 1500;
-
-      // Spawn a magical burst out of the portal
-      spawnPortalBurst();
+      const duration = 1200;
 
       function anim() {
         if (!tracked) { setVideoOpacity(0); return; }
         const p = Math.min((performance.now() - start) / duration, 1);
         const ease = 1 - Math.pow(1 - p, 3);
         
-        // Video rises slightly from the depths but stays behind the wall (-0.1)
-        arVideo.object3D.position.z = -0.4 + ((-0.1) - (-0.4)) * ease;
+        const currentScale = 0.95 + (0.05 * ease);
+        arVideo.object3D.scale.set(currentScale, currentScale, 1);
         
         const opEase = Math.min(p / 0.6, 1);
         setVideoOpacity(opEase);
-        portalWalls.forEach(wall => setEntityOpacity(wall, opEase));
 
         if (p < 1) revealRaf = requestAnimationFrame(anim);
       }
@@ -1023,9 +953,7 @@
       const startTime = performance.now();
       function animate() {
         const progress = Math.min((performance.now() - startTime) / 600, 1);
-        const op = startOpacity * (1 - progress);
-        setVideoOpacity(op);
-        portalWalls.forEach(wall => setEntityOpacity(wall, op));
+        setVideoOpacity(startOpacity * (1 - progress));
 
         if (progress < 1) {
           fadeOutAnimation = requestAnimationFrame(animate);
@@ -1045,7 +973,6 @@
       if (fadeOutAnimation) { cancelAnimationFrame(fadeOutAnimation); fadeOutAnimation = null; }
       video.pause(); video.currentTime = 0; 
       setVideoOpacity(0);
-      portalWalls.forEach(wall => setEntityOpacity(wall, 0));
     }
 
 
@@ -1127,10 +1054,10 @@
       startKiteLoop();
       startParallaxLoop();
 
-      // Trigger the Deep Portal after 2 seconds
+      // Trigger standard flat reveal after 2 seconds
       fadeTimer = setTimeout(() => {
         if (!tracked) return;
-        triggerDeepPortalReveal();
+        smoothCinematicReveal();
       }, 2000);
     });
 
