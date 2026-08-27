@@ -3,353 +3,310 @@
 
 <head>
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-  >
-
-  <title>AR Poster Experience</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AR Poster Experience - Hologram & Boids</title>
 
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
+  <!-- =========================================================================
+       CUSTOM SHADER: THE "BURN REVEAL" & "HOLOGRAM" (Option 2 & 3)
+       ========================================================================= -->
+  <script>
+    AFRAME.registerShader('holo-burn', {
+      schema: {
+        src: { type: 'map' },
+        burnProgress: { type: 'number', is: 'uniform', default: 0.0 },
+        timeMsec: { type: 'time', is: 'uniform' },
+        useHologram: { type: 'number', is: 'uniform', default: 1.0 }
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        precision mediump float;
+        
+        uniform sampler2D src;
+        uniform float burnProgress;
+        uniform float timeMsec;
+        uniform float useHologram;
+        varying vec2 vUv;
+
+        // Fast pseudo-random noise generator
+        float rand(vec2 co){
+            return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+        }
+
+        void main() {
+          vec4 tex = texture2D(src, vUv);
+          float t = timeMsec * 0.001;
+
+          // --- 1. GLOWING BURN REVEAL ---
+          // Distance from center, with noise added for a jagged "burn" edge
+          float noise = rand(vUv * 5.0) * 0.15;
+          float dist = distance(vUv, vec2(0.5, 0.5)) + noise;
+          
+          float edgeWidth = 0.06;
+          
+          // Discard pixels that haven't burned in yet
+          if (dist > burnProgress) {
+            discard; 
+          }
+
+          vec4 finalColor = tex;
+          
+          // Add glowing neon edge to the burn frontier
+          if (dist > burnProgress - edgeWidth) {
+            float intensity = (dist - (burnProgress - edgeWidth)) / edgeWidth;
+            vec4 edgeColor = vec4(0.0, 0.8, 1.0, 1.0); // Cyan glow
+            finalColor = mix(tex, edgeColor, intensity * 2.5);
+          }
+
+          // --- 2. HOLOGRAM EFFECT ---
+          if (useHologram > 0.5) {
+            // Animated Scanlines
+            float scanline = sin(vUv.y * 250.0 - t * 15.0) * 0.15 + 0.85;
+            
+            // Cyan/Blue Color Grading
+            vec3 holoTint = vec3(0.1, 0.7, 1.0);
+            float luminance = dot(finalColor.rgb, vec3(0.299, 0.587, 0.114));
+            vec3 tinted = mix(finalColor.rgb, luminance * holoTint * 2.0, 0.8);
+            
+            // Subtle Flicker
+            float flicker = rand(vec2(t, 0.0)) * 0.1 + 0.9;
+            
+            finalColor = vec4(tinted * scanline * flicker, finalColor.a);
+            
+            // Additive light style transparency
+            finalColor.a *= 0.9; 
+          }
+
+          gl_FragColor = finalColor;
+        }
+      `
+    });
+
+    // =========================================================================
+    // BOIDS PHYSICS SYSTEM: THE SWARM (Option 4)
+    // =========================================================================
+    AFRAME.registerComponent('kite-swarm', {
+      schema: {
+        count: {type: 'int', default: 20}
+      },
+      init: function () {
+        this.kites = [];
+        this.target = new THREE.Vector3(0, 0, 0.3); // Default focal point for flocking
+        
+        const colors = ['#kiteOrange', '#kiteBlue', '#kiteWhite'];
+        
+        // Generate kites
+        for (let i = 0; i < this.data.count; i++) {
+          let el = document.createElement('a-image');
+          el.setAttribute('src', colors[i % colors.length]);
+          // Slightly varied sizes
+          let size = 0.03 + Math.random() * 0.02;
+          el.setAttribute('width', size);
+          el.setAttribute('height', size);
+          el.setAttribute('material', 'shader: flat; transparent: true; opacity: 0;');
+          
+          el.object3D.position.set(0, 0, 0.05);
+          this.el.appendChild(el);
+          
+          this.kites.push({
+            el: el,
+            vel: new THREE.Vector3(0, 0, 0),
+            active: false,
+            maxSpeed: 0.2 + Math.random() * 0.2 // varied speeds
+          });
+        }
+        this.activeCount = 0;
+      },
+      
+      launch: function() {
+         this.kites.forEach((k, i) => {
+           setTimeout(() => {
+             k.active = true;
+             k.el.setAttribute('material', 'opacity', '0.9');
+             // Explode outwards from center
+             k.el.object3D.position.set(0, 0, 0.05);
+             k.vel.set((Math.random()-0.5)*2, (Math.random()-0.5)*2, Math.random()).normalize().multiplyScalar(0.1);
+             this.activeCount++;
+           }, i * 80); // Staggered launch
+         });
+      },
+      
+      stop: function() {
+         this.kites.forEach(k => {
+           k.active = false;
+           k.el.setAttribute('material', 'opacity', '0');
+         });
+         this.activeCount = 0;
+      },
+
+      scatter: function() {
+        // "Explosion" of physics when user taps
+        this.kites.forEach(k => {
+           if(k.active) {
+             k.vel.add(new THREE.Vector3((Math.random()-0.5)*2, (Math.random()-0.5)*2, (Math.random()-0.5)*2));
+           }
+        });
+      },
+
+      tick: function (time, delta) {
+        if (this.activeCount === 0 || delta > 100) return;
+        const dt = delta / 1000;
+        const cohesionDist = 0.25;
+        const sepDist = 0.12;
+        
+        for (let i = 0; i < this.kites.length; i++) {
+          let k1 = this.kites[i];
+          if (!k1.active) continue;
+          
+          let pos1 = k1.el.object3D.position;
+          let v1 = k1.vel;
+          let center = new THREE.Vector3();
+          let sep = new THREE.Vector3();
+          let align = new THREE.Vector3();
+          let count = 0;
+          
+          for (let j = 0; j < this.kites.length; j++) {
+            if (i === j) continue;
+            let k2 = this.kites[j];
+            if (!k2.active) continue;
+            
+            let dist = pos1.distanceTo(k2.el.object3D.position);
+            if (dist < cohesionDist) {
+              center.add(k2.el.object3D.position);
+              align.add(k2.vel);
+              count++;
+            }
+            if (dist < sepDist) {
+              let push = pos1.clone().sub(k2.el.object3D.position).normalize().divideScalar(dist);
+              sep.add(push);
+            }
+          }
+          
+          if (count > 0) {
+            center.divideScalar(count);
+            align.divideScalar(count);
+            v1.add(center.sub(pos1).normalize().multiplyScalar(0.015)); // Cohesion
+            v1.add(align.normalize().multiplyScalar(0.015));            // Alignment
+          }
+          
+          v1.add(sep.multiplyScalar(0.03)); // Separation
+          
+          // Gravity towards focal target (circles around hologram)
+          let toTarget = this.target.clone().sub(pos1);
+          // Add a tangential force to make them orbit rather than just crash into center
+          let orbitForce = new THREE.Vector3(-toTarget.y, toTarget.x, 0).normalize().multiplyScalar(0.02);
+          v1.add(toTarget.normalize().multiplyScalar(0.01));
+          v1.add(orbitForce);
+          
+          // Boundaries (keep them near the poster)
+          if (pos1.z < 0.05) v1.z += 0.02; // bounce off poster
+          if (pos1.z > 0.5)  v1.z -= 0.01; // don't fly too high
+          
+          // Clamp Speed
+          if (v1.length() > k1.maxSpeed) {
+            v1.normalize().multiplyScalar(k1.maxSpeed);
+          }
+          
+          pos1.add(v1.clone().multiplyScalar(dt));
+          
+          // 3D Rotation based on velocity
+          let angleZ = Math.atan2(v1.y, v1.x);
+          // -Math.PI/4 offsets the original 45deg image angle so they fly straight
+          k1.el.object3D.rotation.z = angleZ - (Math.PI / 4);
+          
+          // Pitch up/down based on Z velocity
+          k1.el.object3D.rotation.x = -v1.z * 1.5; 
+        }
+      }
+    });
+  </script>
+
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
+    body { margin: 0; overflow: hidden; background: #050505; font-family: -apple-system, sans-serif; }
 
-    body {
-      margin: 0;
-      overflow: hidden;
-      background: #050505;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
-
-    /* =====================================================
-       PORTFOLIO ENTRY PAGE
-    ===================================================== */
-    #intro {
-      position: fixed;
-      inset: 0;
-      z-index: 10000;
-
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-
-      padding: 30px;
-      text-align: center;
-      color: white;
-
-      background: linear-gradient(45deg, #0f0c29, #302b63, #24243e, #0a0a0a);
-      background-size: 400% 400%;
-      animation: gradientBG 15s ease infinite;
-    }
-
-    @keyframes gradientBG {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
-    .bg-orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(60px);
-      z-index: -1;
-      animation: floatOrb 8s infinite alternate ease-in-out;
-    }
-    .bg-orb-1 {
-      width: 250px; height: 250px;
-      background: rgba(255, 126, 95, 0.25);
-      top: 10%; left: -10%;
-      animation-delay: 0s;
-    }
-    .bg-orb-2 {
-      width: 200px; height: 200px;
-      background: rgba(0, 212, 255, 0.25);
-      bottom: 10%; right: -5%;
-      animation-delay: -4s;
-    }
-
-    @keyframes floatOrb {
-      0% { transform: translate(0, 0) scale(1); }
-      100% { transform: translate(30px, -50px) scale(1.1); }
-    }
-
-    .intro-logo {
-      width: 96px;
-      height: 96px;
-      margin-bottom: 30px;
-      border-radius: 26px;
-      box-shadow: 0 15px 45px rgba(255, 126, 95, 0.4), inset 0 0 0 1px rgba(255,255,255,0.2);
-      object-fit: cover;
-      animation: floatLogo 4s ease-in-out infinite;
-    }
-
-    @keyframes floatLogo {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
-    }
-
-    #intro h1 {
-      margin: 0 0 16px;
-      font-size: 38px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      background: linear-gradient(180deg, #ffffff 0%, #dcdcdc 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      text-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    }
-
-    #intro p {
-      max-width: 310px;
-      margin: 0 0 45px;
-      line-height: 1.6;
-      font-size: 17px;
-      color: rgba(255,255,255,0.85);
-      text-shadow: 0 2px 10px rgba(0,0,0,0.5);
-    }
-
-    #start {
-      position: relative;
-      overflow: hidden;
-      padding: 18px 46px;
-      border: none;
-      border-radius: 999px;
-      background: white;
-      color: #050505;
-      font-size: 18px;
-      font-weight: 800;
-      cursor: pointer;
-      box-shadow: 0 10px 30px rgba(255, 255, 255, 0.25);
-      transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    }
-
-    #start::after {
-      content: '';
-      position: absolute;
-      top: 0; left: -100%; width: 50%; height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
-      transform: skewX(-20deg);
-      animation: sweepShine 3s infinite;
-    }
-
-    @keyframes sweepShine {
-      0% { left: -100%; }
-      20% { left: 200%; }
-      100% { left: 200%; }
-    }
-
-    #start:active {
-      transform: scale(0.92);
-      box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15);
-    }
-
-    /* LOADING */
-    #loading {
-      position: fixed;
-      inset: 0;
-      z-index: 9500;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      background: black;
-      font-size: 16px;
-      font-weight: 500;
-      letter-spacing: 1px;
-    }
-
-    /* SCANNING UI */
-    #scanning {
-      position: fixed;
-      inset: 0;
-      z-index: 9000;
-      display: none;
-      pointer-events: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 28px;
-    }
-
-    #scanning::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(
-        ellipse 70% 60% at 50% 50%,
-        transparent 40%,
-        rgba(0, 0, 0, 0.55) 100%
-      );
-    }
-
-    .scan-frame {
-      position: relative;
-      width: min(72vw, 260px);
-      aspect-ratio: 3 / 4;
-      border-radius: 10px;
-      overflow: hidden;
-    }
-
-    .scan-frame::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 10px;
-    }
-
-    .scan-corner {
-      position: absolute;
-      width: 22px;
-      height: 22px;
-      border-color: white;
-      border-style: solid;
-      animation: scanCornerPulse 2s ease-in-out infinite;
-    }
-
+    #intro { position: fixed; inset: 0; z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; text-align: center; color: white; background: linear-gradient(45deg, #0f0c29, #302b63, #24243e, #0a0a0a); background-size: 400% 400%; animation: gradientBG 15s ease infinite; }
+    @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+    .bg-orb { position: absolute; border-radius: 50%; filter: blur(60px); z-index: -1; animation: floatOrb 8s infinite alternate ease-in-out; }
+    .bg-orb-1 { width: 250px; height: 250px; background: rgba(0, 212, 255, 0.25); top: 10%; left: -10%; animation-delay: 0s; }
+    .bg-orb-2 { width: 200px; height: 200px; background: rgba(255, 126, 95, 0.25); bottom: 10%; right: -5%; animation-delay: -4s; }
+    @keyframes floatOrb { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(30px, -50px) scale(1.1); } }
+    .intro-logo { width: 96px; height: 96px; margin-bottom: 30px; border-radius: 26px; box-shadow: 0 15px 45px rgba(0, 212, 255, 0.4), inset 0 0 0 1px rgba(255,255,255,0.2); object-fit: cover; animation: floatLogo 4s ease-in-out infinite; }
+    @keyframes floatLogo { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    #intro h1 { margin: 0 0 16px; font-size: 38px; font-weight: 800; letter-spacing: -0.5px; background: linear-gradient(180deg, #ffffff 0%, #dcdcdc 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+    #intro p { max-width: 310px; margin: 0 0 45px; line-height: 1.6; font-size: 17px; color: rgba(255,255,255,0.85); text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+    #start { position: relative; overflow: hidden; padding: 18px 46px; border: none; border-radius: 999px; background: white; color: #050505; font-size: 18px; font-weight: 800; cursor: pointer; box-shadow: 0 10px 30px rgba(255, 255, 255, 0.25); transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+    #start::after { content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent); transform: skewX(-20deg); animation: sweepShine 3s infinite; }
+    @keyframes sweepShine { 0% { left: -100%; } 20% { left: 200%; } 100% { left: 200%; } }
+    #start:active { transform: scale(0.92); box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15); }
+    #loading { position: fixed; inset: 0; z-index: 9500; display: none; align-items: center; justify-content: center; color: white; background: black; font-size: 16px; font-weight: 500; letter-spacing: 1px; }
+    #scanning { position: fixed; inset: 0; z-index: 9000; display: none; pointer-events: none; flex-direction: column; align-items: center; justify-content: center; gap: 28px; }
+    #scanning::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 70% 60% at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.55) 100%); }
+    .scan-frame { position: relative; width: min(72vw, 260px); aspect-ratio: 3 / 4; border-radius: 10px; overflow: hidden; }
+    .scan-frame::before { content: ''; position: absolute; inset: 0; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px; }
+    .scan-corner { position: absolute; width: 22px; height: 22px; border-color: white; border-style: solid; animation: scanCornerPulse 2s ease-in-out infinite; }
     .scan-corner.tl { top: 0; left: 0; border-width: 2.5px 0 0 2.5px; border-radius: 6px 0 0 0; animation-delay: 0s; }
     .scan-corner.tr { top: 0; right: 0; border-width: 2.5px 2.5px 0 0; border-radius: 0 6px 0 0; animation-delay: 0.25s; }
     .scan-corner.bl { bottom: 0; left: 0; border-width: 0 0 2.5px 2.5px; border-radius: 0 0 0 6px; animation-delay: 0.5s; }
     .scan-corner.br { bottom: 0; right: 0; border-width: 0 2.5px 2.5px 0; border-radius: 0 0 6px 0; animation-delay: 0.75s; }
-
-    @keyframes scanCornerPulse {
-      0%, 100% { opacity: 1;    transform: scale(1);    }
-      50%      { opacity: 0.3; transform: scale(0.92); }
-    }
-
-    .scan-sweep {
-      position: absolute;
-      left: 0; right: 0;
-      height: 2px;
-      background: linear-gradient(
-        to right,
-        transparent 0%,
-        rgba(255, 255, 255, 0.7) 35%,
-        white 50%,
-        rgba(255, 255, 255, 0.7) 65%,
-        transparent 100%
-      );
-      box-shadow: 0 0 8px 2px rgba(255, 255, 255, 0.35);
-      animation: scanSweep 2.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-    }
-
-    @keyframes scanSweep {
-      0%   { top: 0%;   opacity: 0; }
-      8%   { opacity: 1; }
-      92%  { opacity: 1; }
-      100% { top: 100%; opacity: 0; }
-    }
-
-    .scan-label {
-      position: relative;
-      color: rgba(255, 255, 255, 0.8);
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      display: flex;
-      align-items: baseline;
-      gap: 1px;
-    }
-
-    .scan-dot {
-      opacity: 0;
-      animation: dotBlink 1.5s ease-in-out infinite;
-    }
-    .scan-dot:nth-child(1) { animation-delay: 0s; }
-    .scan-dot:nth-child(2) { animation-delay: 0.3s; }
-    .scan-dot:nth-child(3) { animation-delay: 0.6s; }
-
-    @keyframes dotBlink {
-      0%, 100% { opacity: 0; }
-      50%      { opacity: 1; }
-    }
-
-    /* FOUND */
-    #found {
-      position: fixed;
-      z-index: 9000;
-      left: 50%;
-      bottom: 50px;
-      transform: translateX(-50%);
-      padding: 10px 18px;
-      border-radius: 999px;
-      background: rgba(0, 0, 0, 0.65);
-      color: white;
-      font-size: 14px;
-      display: none;
-    }
+    @keyframes scanCornerPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(0.92); } }
+    .scan-sweep { position: absolute; left: 0; right: 0; height: 2px; background: linear-gradient(to right, transparent 0%, rgba(0, 212, 255, 0.7) 35%, white 50%, rgba(0, 212, 255, 0.7) 65%, transparent 100%); box-shadow: 0 0 8px 2px rgba(0, 212, 255, 0.35); animation: scanSweep 2.2s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
+    @keyframes scanSweep { 0% { top: 0%; opacity: 0; } 8% { opacity: 1; } 92% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+    .scan-label { position: relative; color: rgba(255, 255, 255, 0.8); font-size: 12px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; display: flex; align-items: baseline; gap: 1px; }
+    .scan-dot { opacity: 0; animation: dotBlink 1.5s ease-in-out infinite; }
+    .scan-dot:nth-child(1) { animation-delay: 0s; } .scan-dot:nth-child(2) { animation-delay: 0.3s; } .scan-dot:nth-child(3) { animation-delay: 0.6s; }
+    @keyframes dotBlink { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+    #found { position: fixed; z-index: 9000; left: 50%; bottom: 50px; transform: translateX(-50%); padding: 10px 18px; border-radius: 999px; background: rgba(0, 212, 255, 0.2); border: 1px solid rgba(0,212,255,0.5); color: white; font-size: 14px; display: none; }
+    
+    /* Easy Configuration UI inside DOM for debugging/toggling Option 3 */
+    #holoToggle { position: fixed; top: 10px; right: 10px; z-index: 10000; background: rgba(0,0,0,0.7); color: white; border: 1px solid #444; padding: 5px 10px; border-radius: 5px; font-size: 12px; display: none; }
   </style>
 </head>
 
 <body>
 
+  <button id="holoToggle">Hologram: ON</button>
+
   <div id="intro">
     <div class="bg-orb bg-orb-1"></div>
     <div class="bg-orb bg-orb-2"></div>
-    
     <img src="./logo.jpg" alt="AR Logo" class="intro-logo">
-    
-    <h1>Into the Void</h1>
-    <p>Point your camera at the poster. Tap the screen to interact with the magic.</p>
-    
-    <button id="start">Enter AR Experience</button>
+    <h1>Projector Active</h1>
+    <p>Point at the poster to boot the hologram. Tap the swarm to interact.</p>
+    <button id="start">Engage AR</button>
   </div>
 
-  <div id="loading">Starting camera...</div>
+  <div id="loading">Starting projector...</div>
 
   <div id="scanning">
     <div class="scan-frame">
-      <div class="scan-corner tl"></div>
-      <div class="scan-corner tr"></div>
-      <div class="scan-corner bl"></div>
-      <div class="scan-corner br"></div>
+      <div class="scan-corner tl"></div><div class="scan-corner tr"></div>
+      <div class="scan-corner bl"></div><div class="scan-corner br"></div>
       <div class="scan-sweep"></div>
     </div>
-    <div class="scan-label">
-      Scanning<span class="scan-dot">.</span><span class="scan-dot">.</span><span class="scan-dot">.</span>
-    </div>
+    <div class="scan-label">Scanning<span class="scan-dot">.</span><span class="scan-dot">.</span><span class="scan-dot">.</span></div>
   </div>
 
-  <div id="found">✓ Poster detected</div>
+  <div id="found">✓ Target locked</div>
 
-  <!-- 
-    REVERTED RENDERER: Removed antialias and highp to stop camera blur/smudge on mobile.
-    RESTORED TRACKING: Added filterMinCF 0.0001 and filterBeta 0.001 to keep tracking snappy but stable.
-  -->
+  <!-- Note: renderer is optimized for stability -->
   <a-scene
-    mindar-image="
-      imageTargetSrc: ./targets.mind;
-      autoStart: false;
-      uiLoading: no;
-      uiScanning: no;
-      uiError: yes;
-      filterMinCF: 0.0001;
-      filterBeta: 0.001;
-      missTolerance: 5;
-    "
+    mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: yes; filterMinCF: 0.0001; filterBeta: 0.001; missTolerance: 5;"
     color-space="sRGB"
     renderer="colorManagement: true;"
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false"
   >
-
     <a-assets>
-      <video
-        id="film"
-        src="./film-web.mp4"
-        loop
-        playsinline
-        webkit-playsinline
-        crossorigin="anonymous"
-        preload="auto"
-      ></video>
+      <video id="film" src="./film-web.mp4" loop playsinline webkit-playsinline crossorigin="anonymous" preload="auto"></video>
       <img id="kiteOrange" src="./kite-orange.png">
       <img id="kiteBlue"   src="./kite-blue.png">
       <img id="kiteWhite"  src="./kite-white.png">
@@ -359,98 +316,45 @@
 
     <!-- POSTER TARGET -->
     <a-entity id="posterTarget" mindar-image-target="targetIndex: 0">
+      
+      <!-- Option 4: The Flocking Boids Swarm -->
+      <a-entity id="swarm" kite-swarm="count: 18"></a-entity>
 
-      <!-- ================================================
-           VIDEO
-           Restored to perfectly flat against the target (z=0.005)
-           This fixes the clipping and black borders completely.
-      ================================================= -->
-      <a-video
-        id="arVideo"
-        src="#film"
-        width="1"
-        height="0.5625"
-        position="0 0 0.005"
-        material="shader: flat; transparent: true; opacity: 0;"
-        scale="0.95 0.95 1"
-      ></a-video>
-
-
-      <!-- ================================================
-           GYROSCOPE PARALLAX
-      ================================================= -->
-      <!-- BACKGROUND LAYER -->
-      <a-entity id="kiteGroupBack">
-        <a-image id="kiteWhiteAR" src="#kiteWhite" width="0.052" height="0.052" position="-0.105 0.190 0.025" rotation="0 0 45" material="shader: flat; transparent: true; opacity: 0;"></a-image>
-        <a-image id="kiteBlue2" src="#kiteBlue" width="0.032" height="0.032" position="0.34 0.12 0.026" rotation="0 0 55" material="shader: flat; transparent: true; opacity: 0;"></a-image>
-        <a-image id="kiteWhite2" src="#kiteWhite" width="0.028" height="0.028" position="0.22 0.25 0.026" rotation="0 0 40" material="shader: flat; transparent: true; opacity: 0;"></a-image>
-        <a-sphere id="spark2" radius="0.003" position="-0.28 0.24 0.035" material="shader: flat; color: white; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere id="spark4" radius="0.003" position="0.30 0.18 0.035" material="shader: flat; color: white; transparent: true; opacity: 0;"></a-sphere>
-        <a-ring id="glint2" radius-inner="0.005" radius-outer="0.008" position="0.28 0.08 0.04" material="shader: flat; color: white; transparent: true; opacity: 0;"></a-ring>
+      <!-- Option 3: Hologram Projector Elements (Toggleable) -->
+      <a-entity id="holoProjectorBase" visible="false">
+        <!-- Glowing ring on the paper -->
+        <a-ring radius-inner="0.3" radius-outer="0.32" position="0 0 0.01" material="color: #00d4ff; shader: flat; transparent: true; opacity: 0.5"></a-ring>
+        <!-- The volumetric light beam shooting out -->
+        <a-cone id="holoBeam" radius-bottom="0.25" radius-top="0.6" height="0.3" position="0 -0.05 0.15" rotation="-15 0 0" 
+                material="color: #00d4ff; transparent: true; opacity: 0; blending: additive; shader: flat; side: double; depthWrite: false;">
+        </a-cone>
       </a-entity>
 
-      <!-- FOREGROUND LAYER -->
-      <a-entity id="kiteGroupFront">
-        <a-image id="kiteOrangeAR" src="#kiteOrange" width="0.055" height="0.055" position="-0.207 0.165 0.025" rotation="0 0 45" material="shader: flat; transparent: true; opacity: 0;"></a-image>
-        <a-image id="kiteBlueAR" src="#kiteBlue" width="0.048" height="0.048" position="0.135 0.165 0.025" rotation="0 0 45" material="shader: flat; transparent: true; opacity: 0;"></a-image>
-        <a-image id="kiteOrange2" src="#kiteOrange" width="0.040" height="0.040" position="-0.36 0.08 0.026" rotation="0 0 35" material="shader: flat; transparent: true; opacity: 0;"></a-image>
-        <a-image id="kiteOrange3" src="#kiteOrange" width="0.025" height="0.025" position="-0.43 0.20 0.026" rotation="0 0 35" material="shader: flat; transparent: true; opacity: 0;"></a-image>
-        <a-image id="kiteBlue3" src="#kiteBlue" width="0.022" height="0.022" position="0.43 0.24 0.026" rotation="0 0 55" material="shader: flat; transparent: true; opacity: 0;"></a-image>
-        <a-sphere id="spark1" radius="0.004" position="-0.40 0.05 0.035" material="shader: flat; color: white; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere id="spark3" radius="0.004" position="-0.02 0.20 0.035" material="shader: flat; color: white; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere id="spark5" radius="0.003" position="0.42 0.06 0.035" material="shader: flat; color: white; transparent: true; opacity: 0;"></a-sphere>
-        <a-ring id="glint1" radius-inner="0.006" radius-outer="0.009" position="-0.30 0.14 0.04" material="shader: flat; color: white; transparent: true; opacity: 0;"></a-ring>
-        <a-ring id="glint3" radius-inner="0.004" radius-outer="0.007" position="0.02 0.29 0.04" material="shader: flat; color: white; transparent: true; opacity: 0;"></a-ring>
-
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-        <a-sphere class="trail-dot" radius="0.004" position="0 -5 0" material="shader: flat; color: #FFF3E0; transparent: true; opacity: 0;"></a-sphere>
-      </a-entity>
-
-      <!-- ================================================
-           THIN ELEGANT FRAME
-      ================================================= -->
-      <a-plane id="frameTop" width="1.0" height="0.003" position="0 0.2815 0.006" material="shader: flat; color: #FFF; transparent: true; opacity: 0;" scale="0 1 1"></a-plane>
-      <a-plane id="frameBottom" width="1.0" height="0.003" position="0 -0.2815 0.006" material="shader: flat; color: #FFF; transparent: true; opacity: 0;" scale="0 1 1"></a-plane>
-      <a-plane id="frameLeft" width="0.003" height="0.563" position="-0.5015 0 0.006" material="shader: flat; color: #FFF; transparent: true; opacity: 0;" scale="1 0 1"></a-plane>
-      <a-plane id="frameRight" width="0.003" height="0.563" position="0.5015 0 0.006" material="shader: flat; color: #FFF; transparent: true; opacity: 0;" scale="1 0 1"></a-plane>
+      <!-- Option 2 + 3: The Video powered by Custom Burn & Holo Shader -->
+      <!-- Geometry uses 16:9 proportion -->
+      <a-entity 
+        id="arVideoEntity"
+        geometry="primitive: plane; width: 1.1; height: 0.61875"
+        material="shader: holo-burn; src: #film; burnProgress: 0.0; useHologram: 1.0; transparent: true; side: double"
+        position="0 0.1 0.25" 
+        rotation="-15 0 0"
+      ></a-entity>
 
     </a-entity>
   </a-scene>
 
   <script>
     /* ====================================================
-       VERSION / CACHE BUSTING
+       CONFIGURATION / TOGGLE
+       "Plan accordingly" - easily disable Option 3 if hated
     ==================================================== */
-    const APP_VERSION = "2026-08-27-v7";
+    const APP_VERSION = "2026-08-27-v8-BOIDS-HOLO";
+    
+    // SET THIS TO FALSE to completely disable the 3D Hologram (Option 3)
+    // and revert to a perfectly flat, non-tilted video (while keeping the cool Burn shader)
+    let ENABLE_HOLOGRAM = true; 
 
+    // Cache busting
     (function bustCache() {
       const stored = localStorage.getItem("ar_version");
       if (stored && stored !== APP_VERSION) {
@@ -463,7 +367,7 @@
 
 
     /* ====================================================
-       DOM REFERENCES
+       DOM REFERENCES & STATE
     ==================================================== */
     const scene       = document.querySelector("a-scene");
     const startButton = document.querySelector("#start");
@@ -472,524 +376,158 @@
     const scanning    = document.querySelector("#scanning");
     const found       = document.querySelector("#found");
     const video       = document.querySelector("#film");
-    const arVideo     = document.querySelector("#arVideo");
-    const target      = document.querySelector("#posterTarget");
+    const arVideoEntity = document.querySelector("#arVideoEntity");
+    const swarmEl     = document.querySelector("#swarm");
+    const holoProjectorBase = document.querySelector("#holoProjectorBase");
+    const holoBeam    = document.querySelector("#holoBeam");
+    
+    // UI Toggle button for testing
+    const holoToggle = document.querySelector("#holoToggle");
 
-    const kiteGroupFront = document.querySelector("#kiteGroupFront");
-    const kiteGroupBack  = document.querySelector("#kiteGroupBack");
-
-    const frameTop    = document.querySelector("#frameTop");
-    const frameBottom = document.querySelector("#frameBottom");
-    const frameLeft   = document.querySelector("#frameLeft");
-    const frameRight  = document.querySelector("#frameRight");
-
-    const kiteOrange  = document.querySelector("#kiteOrangeAR");
-    const kiteWhite   = document.querySelector("#kiteWhiteAR");
-    const kiteBlue    = document.querySelector("#kiteBlueAR");
-    const kiteOrange2 = document.querySelector("#kiteOrange2");
-    const kiteBlue2   = document.querySelector("#kiteBlue2");
-    const kiteWhite2  = document.querySelector("#kiteWhite2");
-    const kiteOrange3 = document.querySelector("#kiteOrange3");
-    const kiteBlue3   = document.querySelector("#kiteBlue3");
-
-    const extraKites = [kiteOrange2, kiteBlue2, kiteWhite2, kiteOrange3, kiteBlue3];
-    const allKites = [kiteOrange, kiteWhite, kiteBlue, ...extraKites];
-
-    const sparks = [
-      document.querySelector("#spark1"),
-      document.querySelector("#spark2"),
-      document.querySelector("#spark3"),
-      document.querySelector("#spark4"),
-      document.querySelector("#spark5")
-    ];
-
-    const glints = [
-      document.querySelector("#glint1"),
-      document.querySelector("#glint2"),
-      document.querySelector("#glint3")
-    ];
-
-    const trailPool = [...document.querySelectorAll(".trail-dot")];
-    let trailPoolIdx = 0;
-
-
-    /* ====================================================
-       STATE
-    ==================================================== */
-    let tracked          = false;
-    let fadeTimer        = null;
-    let revealRaf        = null;
-    let fadeOutAnimation = null;
-    let kiteTimers       = [];
-    let kiteLoopTimer    = null;
-    let audioCtx         = null;
-
-    let gyroTargetX = 0;
-    let gyroTargetY = 0;
-    let parallaxRaf = null;
-
+    let tracked = false;
+    let revealRaf = null;
+    let audioCtx = null;
 
     /* ====================================================
        AUDIO 
     ==================================================== */
     function ensureAudio() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
+      if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
       if (audioCtx.state === "suspended") audioCtx.resume();
       return audioCtx;
     }
 
-    function playDetectionChime() {
+    function playBootSound() {
       try {
         const ctx = ensureAudio();
-        [880, 1108].forEach((freq, i) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain); gain.connect(ctx.destination);
-          osc.type = "sine";
-          osc.frequency.setValueAtTime(freq, ctx.currentTime);
-          gain.gain.setValueAtTime(0, ctx.currentTime);
-          gain.gain.linearRampToValueAtTime(0.18 - i * 0.04, ctx.currentTime + 0.01);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
-          osc.start(ctx.currentTime + i * 0.015);
-          osc.stop(ctx.currentTime + 1.2);
-        });
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(50, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.6);
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.8);
       } catch (e) {}
     }
 
     function playWhoosh() {
       try {
         const ctx = ensureAudio();
-        const bufferSize = ctx.sampleRate * 0.6;
+        const bufferSize = ctx.sampleRate * 0.3;
         const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
         const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i/bufferSize);
         const source = ctx.createBufferSource();
         source.buffer = buffer;
         const filter = ctx.createBiquadFilter();
         filter.type = "bandpass";
-        filter.frequency.setValueAtTime(800, ctx.currentTime);
-        filter.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.6);
-        filter.Q.value = 0.8;
+        filter.frequency.setValueAtTime(1200, ctx.currentTime);
+        filter.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.3);
         const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.22, ctx.currentTime + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
         source.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
         source.start(ctx.currentTime);
       } catch (e) {}
     }
 
-    function vibrate() {
-      if (navigator.vibrate) navigator.vibrate([50, 30, 80]);
+    function vibrate(pattern = [50]) {
+      if (navigator.vibrate) navigator.vibrate(pattern);
     }
 
     /* ====================================================
-       INTERACTIVE TOUCH PARTICLES
+       INTERACTION
     ==================================================== */
-    function spawnMagicBurst() {
-      for(let i=0; i<25; i++) {
-        const t = document.createElement('a-sphere');
-        t.setAttribute('radius', '0.004');
-        const color = Math.random() > 0.5 ? '#00d4ff' : '#ff7e5f';
-        t.setAttribute('material', `shader: flat; color: ${color}; transparent: true; opacity: 1`);
-        t.setAttribute('position', `0 0 0.01`);
-        target.appendChild(t);
-
-        const angle = Math.random() * Math.PI * 2;
-        const spread = 0.15 + Math.random() * 0.35;
-        const targetX = Math.cos(angle) * spread;
-        const targetY = Math.sin(angle) * spread;
-        const targetZ = 0.1 + Math.random() * 0.3; // Blast outwards
-
-        const duration = 1200 + Math.random() * 800;
-        const start = performance.now();
-
-        function anim() {
-          const p = Math.min((performance.now() - start) / duration, 1);
-          const ease = 1 - Math.pow(1 - p, 3);
-          
-          t.object3D.position.set(
-            targetX * ease,
-            targetY * ease,
-            0.01 + (targetZ - 0.01) * ease
-          );
-          
-          const mesh = t.object3D.children[0];
-          if(mesh && mesh.material) {
-            mesh.material.opacity = 1 - p;
-            mesh.material.needsUpdate = true;
-          }
-
-          if(p < 1 && tracked) requestAnimationFrame(anim);
-          else if (t.parentNode) t.parentNode.removeChild(t);
-        }
-        requestAnimationFrame(anim);
-      }
-    }
-
-    window.addEventListener('touchstart', (e) => {
+    window.addEventListener('touchstart', () => {
       if (!tracked) return;
-      vibrate();
-      playWhoosh();
-      spawnMagicBurst();
+      vibrate([30]);
+      swarmEl.components['kite-swarm'].scatter(); // BOIDS scatter
     });
-    window.addEventListener('mousedown', (e) => {
+    window.addEventListener('mousedown', () => {
       if (!tracked) return;
-      spawnMagicBurst();
+      swarmEl.components['kite-swarm'].scatter(); // BOIDS scatter
     });
 
+    // Dev toggle for Hologram
+    holoToggle.addEventListener('click', () => {
+      ENABLE_HOLOGRAM = !ENABLE_HOLOGRAM;
+      holoToggle.innerText = ENABLE_HOLOGRAM ? "Hologram: ON" : "Hologram: OFF";
+      applyHoloState();
+    });
 
-    /* ====================================================
-       OPACITY HELPERS
-    ==================================================== */
-    function setVideoOpacity(value) {
-      const material = arVideo.getAttribute("material");
-      if(material) {
-        material.opacity = value;
-        arVideo.setAttribute("material", material);
+    function applyHoloState() {
+      if (ENABLE_HOLOGRAM) {
+        arVideoEntity.setAttribute('material', 'useHologram', 1.0);
+        arVideoEntity.object3D.rotation.set(THREE.MathUtils.degToRad(-15), 0, 0);
+        arVideoEntity.object3D.position.set(0, 0.1, 0.25);
+        holoProjectorBase.setAttribute('visible', 'true');
+      } else {
+        // FLAT standard poster mode
+        arVideoEntity.setAttribute('material', 'useHologram', 0.0);
+        arVideoEntity.object3D.rotation.set(0, 0, 0);
+        // Put perfectly flat against the physical poster
+        arVideoEntity.object3D.position.set(0, 0, 0.005); 
+        holoProjectorBase.setAttribute('visible', 'false');
       }
     }
 
-    function setEntityOpacity(entity, value) {
-      const material = entity.getAttribute("material");
-      if(material) {
-        material.opacity = value;
-        entity.setAttribute("material", material);
-      }
-    }
-
 
     /* ====================================================
-       MULTI-LAYER GYRO PARALLAX
+       ANIMATIONS (THE BURN + HOLO REVEAL)
     ==================================================== */
-    function handleOrientation(e) {
-      const gamma = Math.max(-45, Math.min(45, e.gamma || 0));
-      const beta  = Math.max(-45, Math.min(45, e.beta  || 0));
-      gyroTargetX = -(gamma / 45);
-      gyroTargetY =  (beta  / 45);
-    }
-
-    function runParallaxLoop() {
-      if (!tracked) {
-        kiteGroupFront.object3D.position.set(0, 0, 0);
-        kiteGroupBack.object3D.position.set(0, 0, 0);
-        parallaxRaf = null;
-        return;
-      }
-      const fPos = kiteGroupFront.object3D.position;
-      fPos.x += ((gyroTargetX * 0.20) - fPos.x) * 0.08;
-      fPos.y += ((gyroTargetY * 0.14) - fPos.y) * 0.08;
-
-      const bPos = kiteGroupBack.object3D.position;
-      bPos.x += ((gyroTargetX * 0.04) - bPos.x) * 0.05;
-      bPos.y += ((gyroTargetY * 0.03) - bPos.y) * 0.05;
-
-      parallaxRaf = requestAnimationFrame(runParallaxLoop);
-    }
-
-    function startParallaxLoop() {
-      if (!parallaxRaf) parallaxRaf = requestAnimationFrame(runParallaxLoop);
-    }
-    function stopParallaxLoop() {
-      if (parallaxRaf) { cancelAnimationFrame(parallaxRaf); parallaxRaf = null; }
-      kiteGroupFront.object3D.position.set(0, 0, 0);
-      kiteGroupBack.object3D.position.set(0, 0, 0);
-    }
-
-
-    /* ====================================================
-       WIND TRAIL SYSTEM
-    ==================================================== */
-    function spawnTrail(x, y, z, baseOpacity) {
-      const t = trailPool[trailPoolIdx % trailPool.length];
-      trailPoolIdx++;
-      t.object3D.position.set(x, y, z - 0.003);
-      const startX = x, startY = y;
-      const driftDir = (trailPoolIdx % 2 === 0) ? 1 : -1;
-      const startTime = performance.now();
-      
-      function fade() {
-        const p = Math.min((performance.now() - startTime) / 560, 1);
-        const ease = 1 - Math.pow(1 - p, 2);
-        t.object3D.position.y = startY + ease * 0.022;
-        t.object3D.position.x = startX + driftDir * ease * 0.007;
-        const op = p < 0.12 ? (p / 0.12) * baseOpacity : baseOpacity * (1 - (p - 0.12) / 0.88);
-        const mesh = t.object3D.children[0];
-        if (mesh && mesh.material) {
-          mesh.material.opacity = Math.max(0, op);
-          mesh.material.needsUpdate = true;
-        }
-        if (p < 1) requestAnimationFrame(fade);
-        else if (mesh && mesh.material) {
-          mesh.material.opacity = 0;
-          mesh.material.needsUpdate = true;
-          t.object3D.position.set(0, -5, 0);
-        }
-      }
-      requestAnimationFrame(fade);
-    }
-
-
-    /* ====================================================
-       THIN ELEGANT FRAME ANIMATION
-    ==================================================== */
-    function animateFrameIn() {
-      const bars = [ ["x", frameTop, 0], ["x", frameBottom, 55], ["y", frameLeft, 120], ["y", frameRight, 120] ];
-      bars.forEach(([axis, el, delay]) => {
-        setEntityOpacity(el, 0.7);
-        el.object3D.scale[axis] = 0;
-        setTimeout(() => {
-          if (!tracked) return;
-          const start = performance.now();
-          function anim() {
-            const p = Math.min((performance.now() - start) / 380, 1);
-            el.object3D.scale[axis] = 1 - Math.pow(1 - p, 3);
-            if (p < 1) requestAnimationFrame(anim);
-          }
-          requestAnimationFrame(anim);
-        }, delay);
-      });
-    }
-
-    function animateFrameOut(duration) {
-      [frameTop, frameBottom, frameLeft, frameRight].forEach(el => {
-        const mat = el.getAttribute("material");
-        const startOp = mat ? (mat.opacity || 0) : 0;
-        if (startOp <= 0) return;
-        const start = performance.now();
-        function anim() {
-          const p = Math.min((performance.now() - start) / duration, 1);
-          setEntityOpacity(el, startOp * (1 - p));
-          if (p < 1) requestAnimationFrame(anim);
-          else el.object3D.scale.set(1, 1, 1);
-        }
-        requestAnimationFrame(anim);
-      });
-    }
-
-
-    /* ====================================================
-       RESET KITES
-    ==================================================== */
-    function resetKites() {
-      kiteTimers.forEach(timer => clearTimeout(timer));
-      kiteTimers = [];
-
-      const startPositions = {
-        kiteOrange:  [-0.207, 0.165], kiteWhite:   [-0.105, 0.190],
-        kiteBlue:    [ 0.135, 0.165], kiteOrange2: [-0.36,  0.08 ],
-        kiteBlue2:   [ 0.34,  0.12 ], kiteWhite2:  [ 0.22,  0.25 ],
-        kiteOrange3: [-0.43,  0.20 ], kiteBlue3:   [ 0.43,  0.24 ]
-      };
-      const namedKites = [
-        ["kiteOrange", kiteOrange], ["kiteWhite", kiteWhite], ["kiteBlue", kiteBlue],
-        ["kiteOrange2", kiteOrange2], ["kiteBlue2", kiteBlue2], ["kiteWhite2", kiteWhite2],
-        ["kiteOrange3", kiteOrange3], ["kiteBlue3", kiteBlue3]
-      ];
-
-      namedKites.forEach(([name, kite]) => {
-        const [x, y] = startPositions[name];
-        kite.object3D.position.set(x, y, 0.025);
-        kite.object3D.rotation.z = Math.PI / 4;
-        setEntityOpacity(kite, 0);
-      });
-
-      sparks.forEach(spark => setEntityOpacity(spark, 0));
-      glints.forEach(glint => { setEntityOpacity(glint, 0); glint.object3D.scale.set(0.5, 0.5, 0.5); });
-
-      trailPool.forEach(t => {
-        const mesh = t.object3D && t.object3D.children[0];
-        if (mesh && mesh.material) { mesh.material.opacity = 0; mesh.material.needsUpdate = true; }
-        t.object3D.position.set(0, -5, 0);
-      });
-    }
-
-
-    /* ====================================================
-       ANIMATE KITES
-    ==================================================== */
-    function animateKite(kite, startX, startY, endX, endY, duration, delay) {
-      const timer = setTimeout(() => {
-        if (!tracked) return;
-        const startTime = performance.now();
-        let lastTrailProg = -0.09;
-
-        function frame() {
-          if (!tracked) return;
-          const progress = Math.min((performance.now() - startTime) / duration, 1);
-          const eased = 1 - Math.pow(1 - progress, 3);
-          const arc = Math.sin(progress * Math.PI) * 0.055;
-          const x = startX + (endX - startX) * eased;
-          const y = startY + (endY - startY) * eased + arc;
-          const z = 0.025 + (0.14 - 0.025) * eased;
-
-          kite.object3D.position.set(x, y, z);
-          kite.object3D.rotation.z = Math.PI / 4 + progress * Math.PI * 2.35;
-
-          let opacity = progress < 0.08 ? progress / 0.08 : (progress < 0.72 ? 1 : 1 - ((progress - 0.72) / 0.28));
-          setEntityOpacity(kite, opacity);
-
-          if (progress - lastTrailProg >= 0.07 && progress > 0.06 && progress < 0.87) {
-            lastTrailProg = progress;
-            spawnTrail(x, y, z, opacity * 0.52);
-          }
-          if (progress < 1) requestAnimationFrame(frame);
-        }
-        requestAnimationFrame(frame);
-      }, delay);
-      kiteTimers.push(timer);
-    }
-
-
-    /* ====================================================
-       LAUNCH ALL KITES
-    ==================================================== */
-    function launchKites() {
-      resetKites();
-      playWhoosh();
-      animateKite(kiteOrange, -0.207, 0.165, -0.46, 0.60, 1700, 0);
-      animateKite(kiteWhite,  -0.105, 0.190, -0.02, 0.68, 1850, 140);
-      animateKite(kiteBlue,    0.135, 0.165,  0.46, 0.58, 1950, 260);
-      animateKite(kiteOrange2, -0.36, 0.08, -0.60, 0.34, 1450, 420);
-      animateKite(kiteBlue2,    0.34, 0.12,  0.62, 0.42, 1500, 560);
-      animateKite(kiteWhite2,   0.22, 0.25,  0.34, 0.66, 1650, 720);
-      animateKite(kiteOrange3, -0.43, 0.20, -0.66, 0.50, 1350, 880);
-      animateKite(kiteBlue3,    0.43, 0.24,  0.68, 0.54, 1450, 1020);
-
-      sparks.forEach((spark, index) => {
-        const timer = setTimeout(() => {
-          if (!tracked) return;
-          const start = spark.object3D.position.clone();
-          const startTime = performance.now();
-          const duration = 900 + index * 120;
-          const targetX = start.x + (index % 2 === 0 ? -1 : 1) * (0.06 + index * 0.008);
-          const targetY = start.y + 0.10 + index * 0.012;
-
-          function sparkFrame() {
-            if (!tracked) return;
-            const progress = Math.min((performance.now() - startTime) / duration, 1);
-            const eased = 1 - Math.pow(1 - p, 3);
-            spark.object3D.position.x = start.x + (targetX - start.x) * eased;
-            spark.object3D.position.y = start.y + (targetY - start.y) * eased;
-            const opacity = progress < 0.15 ? progress / 0.15 : 1 - ((progress - 0.15) / 0.85);
-            setEntityOpacity(spark, Math.max(0, opacity * 0.8));
-            if (progress < 1) requestAnimationFrame(sparkFrame);
-          }
-          requestAnimationFrame(sparkFrame);
-        }, 450 + index * 90);
-        kiteTimers.push(timer);
-      });
-
-      glints.forEach((glint, index) => {
-        const timer = setTimeout(() => {
-          if (!tracked) return;
-          const start = performance.now();
-          function glintFrame() {
-            if (!tracked) return;
-            const progress = Math.min((performance.now() - start) / 700, 1);
-            const brightness = Math.sin(progress * Math.PI);
-            const scale = 0.5 + brightness * 1.5;
-            glint.object3D.scale.set(scale, scale, scale);
-            setEntityOpacity(glint, brightness * 0.95);
-            if (progress < 1) requestAnimationFrame(glintFrame);
-          }
-          requestAnimationFrame(glintFrame);
-        }, 600 + index * 430);
-        kiteTimers.push(timer);
-      });
-    }
-
-    function startKiteLoop() {
-      stopKiteLoop();
-      kiteLoopTimer = setInterval(() => { if (!tracked) stopKiteLoop(); else launchKites(); }, 4200);
-    }
-    function stopKiteLoop() {
-      if (kiteLoopTimer !== null) { clearInterval(kiteLoopTimer); kiteLoopTimer = null; }
-    }
-
-
-    /* ====================================================
-       FLAT CINEMATIC REVEAL (Fixes perspective cutoffs)
-    ==================================================== */
-    function smoothCinematicReveal() {
+    function triggerMindBlowingReveal() {
       if (revealRaf) cancelAnimationFrame(revealRaf);
       
-      arVideo.object3D.position.set(0, 0, 0.005);
-      arVideo.object3D.scale.set(0.95, 0.95, 1);
-      setVideoOpacity(0);
+      applyHoloState();
+      
+      // Reset burn
+      arVideoEntity.setAttribute('material', 'burnProgress', 0.0);
+      
+      if (ENABLE_HOLOGRAM) {
+        holoBeam.setAttribute('material', 'opacity', 0);
+      }
       
       const start = performance.now();
-      const duration = 1200;
-
+      
       function anim() {
-        if (!tracked) { setVideoOpacity(0); return; }
-        const p = Math.min((performance.now() - start) / duration, 1);
-        const ease = 1 - Math.pow(1 - p, 3);
+        if (!tracked) return;
+        const now = performance.now();
+        const p = Math.min((now - start) / 2500, 1); // 2.5s burn animation
         
-        const currentScale = 0.95 + (0.05 * ease);
-        arVideo.object3D.scale.set(currentScale, currentScale, 1);
+        // Easing for burn radius
+        const easeBurn = 1 - Math.pow(1 - p, 3);
         
-        const opEase = Math.min(p / 0.6, 1);
-        setVideoOpacity(opEase);
+        // Dist travels out to roughly 1.0 to clear the whole 16:9 plane corners
+        arVideoEntity.setAttribute('material', 'burnProgress', easeBurn * 1.2);
+        
+        if (ENABLE_HOLOGRAM) {
+           // Fade in beam
+           holoBeam.setAttribute('material', 'opacity', Math.min(p * 2, 0.4));
+        }
 
-        if (p < 1) revealRaf = requestAnimationFrame(anim);
-      }
-      revealRaf = requestAnimationFrame(anim);
-    }
-
-
-    /* ====================================================
-       VIDEO FADE OUT / RESET
-    ==================================================== */
-    function fadeVideoOut(onComplete) {
-      if (revealRaf) { cancelAnimationFrame(revealRaf); revealRaf = null; }
-      if (fadeOutAnimation) { cancelAnimationFrame(fadeOutAnimation); fadeOutAnimation = null; }
-
-      const startOpacity = arVideo.getAttribute("material")?.opacity || 0;
-      if (startOpacity <= 0) { onComplete && onComplete(); return; }
-
-      const startTime = performance.now();
-      function animate() {
-        const progress = Math.min((performance.now() - startTime) / 600, 1);
-        setVideoOpacity(startOpacity * (1 - progress));
-
-        if (progress < 1) {
-          fadeOutAnimation = requestAnimationFrame(animate);
-        } else {
-          fadeOutAnimation = null;
-          video.pause(); video.currentTime = 0; 
-          setVideoOpacity(0);
-          onComplete && onComplete();
+        if (p < 1) {
+          revealRaf = requestAnimationFrame(anim);
         }
       }
-      fadeOutAnimation = requestAnimationFrame(animate);
+      revealRaf = requestAnimationFrame(anim);
+      
+      // Launch Boids Swarm
+      setTimeout(() => {
+        swarmEl.components['kite-swarm'].launch();
+      }, 400);
     }
 
-    function resetVideo() {
-      if (fadeTimer) { clearTimeout(fadeTimer); fadeTimer = null; }
-      if (revealRaf) { cancelAnimationFrame(revealRaf); revealRaf = null; }
-      if (fadeOutAnimation) { cancelAnimationFrame(fadeOutAnimation); fadeOutAnimation = null; }
-      video.pause(); video.currentTime = 0; 
-      setVideoOpacity(0);
-    }
-
-
-    function fadeKitesOut(duration, onComplete) {
-      const startTime = performance.now();
-      const kiteStartOps = allKites.map(k => k.getAttribute("material")?.opacity || 0);
-      const sparkStartOps = sparks.map(s => s.getAttribute("material")?.opacity || 0);
-      const glintStartOps = glints.map(g => g.getAttribute("material")?.opacity || 0);
-
-      function frame() {
-        const progress = Math.min((performance.now() - startTime) / duration, 1);
-        allKites.forEach((k, i) => setEntityOpacity(k, kiteStartOps[i] * (1 - progress)));
-        sparks.forEach((s, i) => setEntityOpacity(s, sparkStartOps[i] * (1 - progress)));
-        glints.forEach((g, i) => setEntityOpacity(g, glintStartOps[i] * (1 - progress)));
-        if (progress < 1) requestAnimationFrame(frame); else onComplete && onComplete();
-      }
-      requestAnimationFrame(frame);
+    function resetExperience() {
+      if (revealRaf) cancelAnimationFrame(revealRaf);
+      arVideoEntity.setAttribute('material', 'burnProgress', 0.0);
+      holoBeam.setAttribute('material', 'opacity', 0);
+      video.pause(); 
+      video.currentTime = 0;
+      swarmEl.components['kite-swarm'].stop();
     }
 
 
@@ -998,22 +536,14 @@
     ==================================================== */
     startButton.addEventListener("click", async () => {
       ensureAudio();
+      
+      // Show dev toggle once started
+      holoToggle.style.display = "block";
 
       video.muted = true; 
       video.play().then(() => {
-        video.pause();
-        video.currentTime = 0;
-        video.muted = false;
+        video.pause(); video.currentTime = 0; video.muted = false;
       }).catch(err => console.warn("Video unlock failed:", err));
-
-      if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
-        try {
-          const state = await DeviceOrientationEvent.requestPermission();
-          if (state === "granted") window.addEventListener("deviceorientation", handleOrientation);
-        } catch (e) {}
-      } else {
-        window.addEventListener("deviceorientation", handleOrientation);
-      }
 
       intro.style.display = "none";
       loading.style.display = "flex";
@@ -1025,14 +555,15 @@
         scanning.style.display = "flex";
       } catch (error) {
         console.error(error);
-        loading.innerHTML = "Unable to access the camera.";
+        loading.innerHTML = "Camera error.";
       }
     });
 
-
     /* ====================================================
-       POSTER FOUND
+       TARGET FOUND / LOST
     ==================================================== */
+    const target = document.querySelector("#posterTarget");
+    
     target.addEventListener("targetFound", () => {
       if (tracked) return;
       tracked = true;
@@ -1041,41 +572,20 @@
       found.style.display = "block";
       setTimeout(() => { found.style.display = "none"; }, 1200);
 
-      vibrate();
-      playDetectionChime();
-      animateFrameIn();
-      resetKites();
-      resetVideo();
+      vibrate([50, 50, 100]);
+      playBootSound();
+      
+      resetExperience();
 
       video.currentTime = 0;
       video.play().catch(err => console.log("Video playback:", err));
 
-      launchKites();
-      startKiteLoop();
-      startParallaxLoop();
-
-      // Trigger standard flat reveal after 2 seconds
-      fadeTimer = setTimeout(() => {
-        if (!tracked) return;
-        smoothCinematicReveal();
-      }, 2000);
+      triggerMindBlowingReveal();
     });
 
-
-    /* ====================================================
-       POSTER LOST
-    ==================================================== */
     target.addEventListener("targetLost", () => {
       tracked = false;
-      stopKiteLoop();
-      stopParallaxLoop();
-      kiteTimers.forEach(t => clearTimeout(t)); kiteTimers = [];
-      if (fadeTimer) { clearTimeout(fadeTimer); fadeTimer = null; }
-      
-      animateFrameOut(400);
-      fadeKitesOut(400, () => resetKites());
-      fadeVideoOut(() => {});
-      
+      resetExperience();
       setTimeout(() => { if (!tracked) scanning.style.display = "flex"; }, 350);
       found.style.display = "none";
     });
