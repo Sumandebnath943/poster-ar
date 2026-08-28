@@ -4,3 +4,6 @@
 # Local rollback copies — kept on disk, deliberately not in the repo
 index - backup of last working file.html
 film-web - backup.mp4
+
+# Local scratch copies of compiled targets
+targets-backup.mind

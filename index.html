@@ -422,10 +422,11 @@
     }
     .hud-btn[disabled] { opacity: 0.3; pointer-events: none; }
 
-    /* Capture + cinema only make sense once the film is up */
-    #btnShot, #btnCinema { display: none; }
+    /* Capture, portal + cinema only make sense once the film is up */
+    #btnShot, #btnCinema, #btnPortal { display: none; }
     body.revealed #btnShot,
-    body.revealed #btnCinema { display: flex; }
+    body.revealed #btnCinema,
+    body.revealed #btnPortal { display: flex; }
 
     /* Shutter flash */
     #flash {
@@ -537,12 +538,49 @@
       line-height: 1.6;
       color: rgba(255,255,255,0.7);
     }
+    .end-logo {
+      width: 64px; height: 64px;
+      border-radius: 18px;
+      object-fit: cover;
+      margin-bottom: 4px;
+      box-shadow: 0 10px 30px rgba(255,126,95,0.28);
+    }
+    .end-role {
+      margin: 0 0 4px !important;
+      font-size: 13px !important;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.5) !important;
+    }
+    .end-links {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+    .end-links a {
+      color: rgba(255,255,255,0.82);
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(255,255,255,0.25);
+      padding-bottom: 2px;
+    }
+    .end-links a:active { color: #fff; }
     .end-actions {
       display: flex;
       gap: 12px;
       flex-wrap: wrap;
       justify-content: center;
     }
+    .pill-btn.primary {
+      background: #fff;
+      color: #0a0a0a;
+      border-color: transparent;
+      font-weight: 800;
+    }
+    .pill-btn[hidden] { display: none; }
 
     /* A-Frame's own canvas must never eat HUD taps */
     a-scene { z-index: 1; }
@@ -601,6 +639,7 @@
   <div id="hud">
     <button class="hud-btn" id="btnSound"  aria-label="Toggle sound">&#128266;</button>
     <button class="hud-btn" id="btnWind"   aria-label="Blow to fly">&#127788;</button>
+    <button class="hud-btn" id="btnPortal" aria-label="Open the portal">&#128506;</button>
     <button class="hud-btn" id="btnShot"   aria-label="Capture photo">&#128247;</button>
     <button class="hud-btn" id="btnCinema" aria-label="Watch full screen">&#9974;</button>
   </div>
@@ -630,11 +669,16 @@
     <button class="pill-btn" id="btnCinemaSound">&#128266; Sound</button>
   </div>
 
-  <!-- END CARD -->
+  <!-- END CARD / CONTACT
+       The film used to end on a dead stop. This is the moment the
+       piece has earned attention, so it hands over details. -->
   <div id="endCard">
-    <h2>The End</h2>
-    <p>Thanks for watching. Point the camera back at the poster whenever you like.</p>
+    <img src="./logo-256.jpg" alt="" class="end-logo" width="64" height="64">
+    <h2 id="endName">&nbsp;</h2>
+    <p class="end-role" id="endRole">&nbsp;</p>
+    <div class="end-links" id="endLinks"></div>
     <div class="end-actions">
+      <button class="pill-btn primary" id="btnSaveContact">Save contact</button>
       <button class="pill-btn" id="btnReplay">Watch again</button>
       <button class="pill-btn" id="btnEndClose">Back to AR</button>
     </div>
@@ -648,14 +692,14 @@
   -->
   <a-scene
     mindar-image="
-      imageTargetSrc: ./targets.mind;
+      imageTargetSrc: ./targets.mind?v=2;
       autoStart: false;
       uiLoading: no;
       uiScanning: no;
       uiError: no;
-      filterMinCF: 0.0005;
-      filterBeta: 1200;
-      missTolerance: 20;
+      filterMinCF: 0.001;
+      filterBeta: 2500;
+      missTolerance: 10;
       warmupTolerance: 5;
     "
     renderer="colorManagement: true; antialias: true; precision: high; sortTransparentObjects: true"
@@ -766,21 +810,120 @@
 
       /* Blow-to-fly sensitivity (RMS of low-passed mic signal) */
       blowThreshold: 0.055,
-      blowCeiling:   0.20
+      blowCeiling:   0.20,
+
+      /* ---- PORTAL ----  OFF by default.
+         The poster becomes a hole in the wall: a stencil mask at the
+         poster plane is the aperture, and everything inside only draws
+         where that mask wrote.
+
+         It looks good, but it costs the thing the piece is actually
+         for. Anything set back from the target plane amplifies pose
+         error — the same small rotational jitter that is invisible on
+         the poster surface becomes visible swimming at depth — and it
+         breaks the illusion that the film is printed on the poster.
+
+         Turn it on for a demo with ?portal=1. */
+      portal: false,
+      portalDepth: 0.42,      /* how far the void recedes, in poster widths */
+      portalOpenMs: 780,
+      filmDepth: -0.16,       /* film screen sits inside, behind the wall */
+      /* Smaller than the aperture on purpose — at full width the screen
+         covers the void and you lose the depth you just built. */
+      filmScaleInPortal: 0.62,
+
+      /* Route the film through a PannerNode positioned at the poster,
+         so the sound genuinely comes from it. Falls back to plain
+         stereo if the audio graph can't be built. */
+      spatialAudio: true,
+
+      /* Tint the void to the viewer's local time of day */
+      timeOfDay: true,
+
+      /* ---- EDGE SOFTENING ----
+         A few pixels of tracking error against a hard rectangular
+         edge reads as a glaring misalignment; against a feathered
+         one it reads as nothing. This does not improve tracking, it
+         makes the error that remains far less visible — which is
+         worth as much, because on a hand-held bending sheet the
+         error is never going fully away.
+
+         It works especially well here: the film's opening frame IS
+         the poster art, so the blend is close to invisible. */
+      featherEdges: true,
+      featherAmount: 0.05,   /* fraction of the plane faded at each edge */
+
+      /* The thin frame is a lovely reveal, but leaving a perfectly
+         rigid rectangle sitting on a curved sheet advertises every
+         pixel of error. Draw it, then let it go. */
+      frameHoldMs: 2600,
+      frameFadeMs: 900
+    };
+
+    /* Fill these in — they drive the end card and the saved contact.
+       Left blank the card still works, it just shows less. */
+    const CONTACT = {
+      name:     "Suman Debnath",
+      role:     "Senior Brand Marketing Manager",
+      email:    "",
+      phone:    "",
+      linkedin: "",
+      site:     "https://github.com/Sumandebnath943/poster-ar"
     };
 
     const KITE_ASPECT = 439 / 317;   /* source PNG aspect */
-    const APP_VERSION = "2026-08-28-v6";
+    const POSTER_W = 1.0;            /* MindAR normalises target width to 1 */
+    const POSTER_H = 0.5614;         /* 1536 / 2736, from the compiled target */
+    const APP_VERSION = "2026-08-29-v8";
 
-    const K_TIME  = "ar_film_time";
-    const K_SOUND = "ar_sound";
+
+    /* ====================================================
+       ON-DEVICE TUNING
+       How tracking *feels* can only be judged against the real
+       poster, so everything worth turning is reachable from the
+       URL — no edit, no redeploy, just reload on the phone:
+
+         ?minCF=0.002   filterMinCF   raise to cut LAG, lower to cut JITTER
+         ?beta=4000     filterBeta    raise to cut lag while the poster moves
+         ?miss=6        missTolerance lower = less freeze-then-snap
+         ?camW=640      camera width  lower frees CPU for the tracker
+         ?portal=1      bring the portal back
+         ?debug=1       live fps / camera resolution / current values
+
+       Sweep one at a time. minCF and beta pull against each other.
+    ==================================================== */
+    const QS = new URLSearchParams(location.search);
+    const qsNum = (k, d) => { const v = parseFloat(QS.get(k)); return isFinite(v) ? v : d; };
+
+    if (QS.has("portal")) CONFIG.portal = QS.get("portal") !== "0";
+    CONFIG.camWidth  = qsNum("camW", CONFIG.camWidth);
+    CONFIG.camHeight = qsNum("camH", CONFIG.camHeight);
+    CONFIG.filmDepth = qsNum("filmDepth", CONFIG.filmDepth);
+
+    /* Defaults here must mirror the mindar-image attribute above. */
+    const TRACK = {
+      filterMinCF:     qsNum("minCF",  0.001),
+      filterBeta:      qsNum("beta",   2500),
+      missTolerance:   qsNum("miss",   10),
+      warmupTolerance: qsNum("warmup", 5)
+    };
+    const TRACK_OVERRIDDEN = ["minCF", "beta", "miss", "warmup"].some(k => QS.has(k));
+    const DEBUG = QS.get("debug") === "1";
+
+    const K_TIME   = "ar_film_time";
+    const K_SOUND  = "ar_sound";
+    const K_PORTAL = "ar_portal";
 
     /* Version bump forces one reload so stale HTML can't linger. */
     try {
       const stored = localStorage.getItem("ar_version");
       if (stored && stored !== APP_VERSION) {
         localStorage.setItem("ar_version", APP_VERSION);
-        location.replace(location.pathname + "?v=" + APP_VERSION);
+        /* Preserve any tuning params — dropping them mid-sweep would
+           silently reset the values being tested. */
+        const qs = new URLSearchParams(location.search);
+        qs.set("v", APP_VERSION);
+        location.replace(location.pathname + "?" + qs.toString());
         return;
       }
       localStorage.setItem("ar_version", APP_VERSION);
@@ -820,6 +963,7 @@
     const btnWind     = document.querySelector("#btnWind");
     const btnShot     = document.querySelector("#btnShot");
     const btnCinema   = document.querySelector("#btnCinema");
+    const btnPortal   = document.querySelector("#btnPortal");
     const btnExitCine = document.querySelector("#btnExitCinema");
     const btnCineSnd  = document.querySelector("#btnCinemaSound");
     const btnReplay   = document.querySelector("#btnReplay");
@@ -886,6 +1030,32 @@
        which at 60fps across ~16 entities was starving the frame
        budget that MindAR's tracker shares.
     ==================================================== */
+    /* Soft-edged alpha mask for the film plane. The plane is 16:9 and
+       so is this canvas, so a uniform pixel inset gives a uniform
+       feather in world units on all four sides. */
+    let featherTex = null;
+
+    function makeFeatherTexture(amount) {
+      const W = 256, H = 144;
+      const c = document.createElement("canvas");
+      c.width = W; c.height = H;
+      const g = c.getContext("2d");
+      const f = Math.max(2, Math.round(W * amount));
+
+      g.fillStyle = "#000";
+      g.fillRect(0, 0, W, H);
+      /* canvas blur does the falloff; without support this degrades
+         to the hard edge we already had, which is no worse. */
+      try { g.filter = "blur(" + (f * 0.62).toFixed(1) + "px)"; } catch (e) {}
+      g.fillStyle = "#fff";
+      g.fillRect(f, f, W - 2 * f, H - 2 * f);
+      try { g.filter = "none"; } catch (e) {}
+
+      const t = new THREE.CanvasTexture(c);
+      t.colorSpace = THREE.NoColorSpace;   /* alphaMap reads the green channel */
+      return t;
+    }
+
     function setOp(el, v) {
       const mesh = el && el.getObject3D("mesh");
       if (!mesh || !mesh.material) return;
@@ -1022,6 +1192,68 @@
 
 
     /* ====================================================
+       SPATIAL AUDIO
+       Route the film through a PannerNode sitting at the poster,
+       so the sound comes from the wall rather than from the phone.
+       MindAR moves the target and leaves the camera at the origin,
+       so the target's world position IS its position relative to
+       the listener — no extra maths needed.
+
+       createMediaElementSource permanently diverts the element's
+       output, so if anything here throws we leave the film on the
+       default path rather than risk silent playback.
+    ==================================================== */
+    let filmSource = null, filmPanner = null;
+
+    function setupSpatialAudio() {
+      if (!CONFIG.spatialAudio || filmSource) return;
+      const ctx = ensureAudio();
+      if (!ctx) return;
+      try {
+        filmSource = ctx.createMediaElementSource(video);
+        filmPanner = ctx.createPanner();
+        filmPanner.panningModel   = "HRTF";
+        filmPanner.distanceModel  = "inverse";
+        filmPanner.refDistance    = 0.7;
+        filmPanner.maxDistance    = 25;
+        filmPanner.rolloffFactor  = 0.5;
+        filmPanner.positionZ.value = -1;   /* straight ahead until tracked */
+        filmSource.connect(filmPanner);
+        filmPanner.connect(ctx.destination);
+      } catch (e) {
+        /* Older Safari throws if called twice, or if the element is
+           mid-load. Fall back to unspatialised audio. */
+        filmSource = null;
+        filmPanner = null;
+      }
+    }
+
+    const _panPos = new THREE.Vector3();
+
+    function updateSpatialAudio() {
+      if (!filmPanner) return;
+      /* In cinema mode the poster is irrelevant — centre it. */
+      if (cinema || !tracked) {
+        _panPos.set(0, 0, -1);
+      } else {
+        targetEl.object3D.getWorldPosition(_panPos);
+        if (!isFinite(_panPos.x) || !isFinite(_panPos.y) || !isFinite(_panPos.z)) {
+          _panPos.set(0, 0, -1);
+        }
+      }
+      try {
+        if (filmPanner.positionX) {
+          filmPanner.positionX.value = _panPos.x;
+          filmPanner.positionY.value = _panPos.y;
+          filmPanner.positionZ.value = _panPos.z;
+        } else {
+          filmPanner.setPosition(_panPos.x, _panPos.y, _panPos.z);
+        }
+      } catch (e) {}
+    }
+
+
+    /* ====================================================
        WIND TRAIL PARTICLES
        Was 30 individual <a-sphere> entities = 30 draw calls and
        30 materials. Now one THREE.Points per parallax layer.
@@ -1071,7 +1303,7 @@
 
       const points = new THREE.Points(geo, mat);
       points.frustumCulled = false;
-      points.renderOrder = 2;
+      points.renderOrder = 12;   /* outside the portal, draws last */
       parentObj.add(points);
 
       let head = 0;
@@ -1135,6 +1367,491 @@
     }
 
     let trailsFront = null, trailsBack = null;
+
+
+    /* ====================================================
+       TIME OF DAY
+       The poster is a sunset. The void behind it isn't — it
+       follows the viewer's own clock, so an 11pm scan and an
+       8am scan are different pieces.
+    ==================================================== */
+    function todPalette() {
+      const h = CONFIG.timeOfDay ? new Date().getHours() : 18;
+      if (h >= 5 && h < 8) return {
+        name: "dawn",
+        top: "#16223f", mid: "#7d5570", horizon: "#e8956b", horizonLow: "#f6b98c",
+        cityFar: "#6d5f74", cityMid: "#3f3446", cityNear: "#241e30",
+        window: "#ffd9a0", windowDensity: 0.10,
+        stars: 0.30, wallEdge: "#43384a", accent: "#ffb98a",
+        glow: "rgba(255,170,110,0.30)", glowX: 0.24,
+        cloud: "rgba(255,190,160,0.16)", wind: 0.05
+      };
+      if (h >= 8 && h < 16) return {
+        name: "day",
+        top: "#2f6fa8", mid: "#7fb0d4", horizon: "#d8e9f2", horizonLow: "#eaf3f8",
+        cityFar: "#9fb4c4", cityMid: "#6d8194", cityNear: "#48586a",
+        window: "#eef4f8", windowDensity: 0.03,
+        stars: 0.0, wallEdge: "#5a6774", accent: "#ffffff",
+        glow: "rgba(255,255,240,0.22)", glowX: 0.30,
+        cloud: "rgba(255,255,255,0.30)", wind: 0.045
+      };
+      if (h >= 16 && h < 19) return {
+        name: "golden",
+        top: "#22304f", mid: "#8a5f74", horizon: "#f0a05a", horizonLow: "#ffc98a",
+        cityFar: "#7a6068", cityMid: "#4a3a42", cityNear: "#2a2128",
+        window: "#ffcf90", windowDensity: 0.14,
+        stars: 0.12, wallEdge: "#463840", accent: "#ffc078",
+        glow: "rgba(255,160,80,0.38)", glowX: 0.20,
+        cloud: "rgba(255,200,150,0.20)", wind: 0.05
+      };
+      /* Night is lifted well off true black on purpose — this gets
+         composited over a real wall on a phone in a lit room, and a
+         near-black void just reads as "nothing happened". */
+      return {
+        name: "night",
+        top: "#0a1225", mid: "#1c2c4e", horizon: "#4a6493", horizonLow: "#66809f",
+        cityFar: "#33455f", cityMid: "#1a2438", cityNear: "#0c1120",
+        window: "#ffd48a", windowDensity: 0.30,
+        stars: 0.95, wallEdge: "#2a3348", accent: "#9fc0ff",
+        glow: "rgba(120,170,255,0.20)", glowX: 0.26,
+        cloud: "rgba(150,180,230,0.10)", wind: 0.06
+      };
+    }
+
+
+    /* ====================================================
+       THE PORTAL
+       The poster stops being a surface and becomes an opening.
+       A quad at the poster plane writes to the stencil buffer
+       but not to colour; everything inside the void draws only
+       where that mask passed. The result reads as a hole in the
+       wall, and the camera-pose parallax already in place is
+       exactly the input that sells it.
+
+       Depth is deliberately modest — pose error is amplified
+       with distance from the target plane, so a deep box swims
+       more than a shallow one.
+    ==================================================== */
+    const STENCIL_REF = 1;
+
+    let portalGroup = null, portalMask = null, voidMotes = null, voidClouds = null;
+    const voidKites = [];
+    const voidLayers = [];
+
+    function stencilInside(mat) {
+      mat.stencilWrite  = true;
+      mat.stencilRef    = STENCIL_REF;
+      mat.stencilFunc   = THREE.EqualStencilFunc;
+      mat.stencilFail   = THREE.KeepStencilOp;
+      mat.stencilZFail  = THREE.KeepStencilOp;
+      mat.stencilZPass  = THREE.KeepStencilOp;
+      return mat;
+    }
+
+    function canvasTex(c) {
+      const t = new THREE.CanvasTexture(c);
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.anisotropy = 4;
+      return t;
+    }
+
+    /* Sky only — the city now lives on its own parallax layers. */
+    function makeSkyTexture(pal) {
+      const c = document.createElement("canvas");
+      c.width = 1024; c.height = 576;
+      const g = c.getContext("2d");
+
+      const grad = g.createLinearGradient(0, 0, 0, 576);
+      grad.addColorStop(0, pal.top);
+      grad.addColorStop(0.52, pal.mid);
+      grad.addColorStop(0.86, pal.horizon);
+      grad.addColorStop(1, pal.horizonLow || pal.horizon);
+      g.fillStyle = grad;
+      g.fillRect(0, 0, 1024, 576);
+
+      if (pal.stars > 0) {
+        for (let i = 0; i < 420; i++) {
+          const y = Math.random() * 420;
+          /* thin out towards the horizon haze */
+          g.globalAlpha = pal.stars * (0.2 + Math.random() * 0.8) * (1 - y / 520);
+          g.fillStyle = Math.random() < 0.12 ? pal.accent : "#ffffff";
+          const r = Math.random() * 1.15 + 0.25;
+          g.beginPath();
+          g.arc(Math.random() * 1024, y, r, 0, 6.29);
+          g.fill();
+        }
+        g.globalAlpha = 1;
+      }
+
+      /* a soft glow where the sun just went down / will come up */
+      const gx = 1024 * (pal.glowX != null ? pal.glowX : 0.22);
+      const glow = g.createRadialGradient(gx, 500, 0, gx, 500, 430);
+      glow.addColorStop(0, pal.glow);
+      glow.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = glow;
+      g.fillRect(0, 0, 1024, 576);
+
+      return canvasTex(c);
+    }
+
+    /* One depth tier of skyline, transparent above the roofline so
+       the tiers stack into real layered parallax. */
+    function makeSkylineTexture(pal, tier) {
+      const c = document.createElement("canvas");
+      c.width = 1024; c.height = 576;
+      const g = c.getContext("2d");
+
+      const cfg = [
+        { scale: 0.34, colour: pal.cityFar,  alpha: 0.55, win: pal.windowDensity * 0.35, detail: false },
+        { scale: 0.60, colour: pal.cityMid,  alpha: 0.85, win: pal.windowDensity * 0.8,  detail: true  },
+        { scale: 1.00, colour: pal.cityNear, alpha: 1.00, win: pal.windowDensity,        detail: true  }
+      ][tier];
+
+      const base = 576;
+      const maxH = 230 * cfg.scale;
+      g.globalAlpha = cfg.alpha;
+
+      let x = -40;
+      while (x < 1064) {
+        const w = (30 + Math.random() * 70) * (0.6 + cfg.scale * 0.7);
+        const h = (40 + Math.random() * maxH);
+        g.fillStyle = cfg.colour;
+        g.fillRect(x, base - h, w, h);
+
+        if (cfg.detail) {
+          /* rooftop clutter — water tanks and masts, echoing the poster */
+          if (Math.random() < 0.45) {
+            const tw = 8 + Math.random() * 12;
+            g.fillRect(x + w * 0.2, base - h - tw * 0.75, tw, tw * 0.75);
+          }
+          if (Math.random() < 0.3) {
+            g.fillRect(x + w * 0.7, base - h - (18 + Math.random() * 26), 2, 18 + Math.random() * 26);
+          }
+        }
+
+        if (cfg.win > 0) {
+          g.fillStyle = pal.window;
+          const step = 11 * cfg.scale + 5;
+          for (let wy = base - h + 9; wy < base - 6; wy += step) {
+            for (let wx = x + 5; wx < x + w - 6; wx += step) {
+              if (Math.random() < cfg.win) {
+                g.globalAlpha = cfg.alpha * (0.45 + Math.random() * 0.55);
+                g.fillRect(wx, wy, 3.2, 4.2);
+              }
+            }
+          }
+          g.globalAlpha = cfg.alpha;
+        }
+        x += w + 2 + Math.random() * 10;
+      }
+      g.globalAlpha = 1;
+      return canvasTex(c);
+    }
+
+    function makeCloudTexture(pal) {
+      const c = document.createElement("canvas");
+      c.width = 1024; c.height = 576;
+      const g = c.getContext("2d");
+      for (let i = 0; i < 16; i++) {
+        const cx = Math.random() * 1024;
+        const cy = 60 + Math.random() * 280;
+        const r  = 60 + Math.random() * 150;
+        const grd = g.createRadialGradient(cx, cy, 0, cx, cy, r);
+        grd.addColorStop(0, pal.cloud);
+        grd.addColorStop(1, "rgba(0,0,0,0)");
+        g.fillStyle = grd;
+        g.beginPath();
+        g.ellipse(cx, cy, r, r * (0.36 + Math.random() * 0.2), 0, 0, 6.29);
+        g.fill();
+      }
+      const t = canvasTex(c);
+      t.wrapS = THREE.RepeatWrapping;
+      return t;
+    }
+
+    /* Side walls fade from the lit aperture to darkness at the back.
+       Two variants because the UV axis differs per wall orientation. */
+    function makeWallTexture(pal, horizontal) {
+      const c = document.createElement("canvas");
+      c.width = horizontal ? 128 : 8;
+      c.height = horizontal ? 8 : 128;
+      const g = c.getContext("2d");
+      const grad = horizontal
+        ? g.createLinearGradient(0, 0, 128, 0)
+        : g.createLinearGradient(0, 0, 0, 128);
+      grad.addColorStop(0, pal.wallEdge);
+      grad.addColorStop(1, "#04060b");
+      g.fillStyle = grad;
+      g.fillRect(0, 0, c.width, c.height);
+      const t = new THREE.CanvasTexture(c);
+      t.colorSpace = THREE.SRGBColorSpace;
+      return t;
+    }
+
+    function buildPortal() {
+      const pal = todPalette();
+      const W = POSTER_W, H = POSTER_H, D = CONFIG.portalDepth;
+
+      portalGroup = new THREE.Group();
+      portalGroup.visible = false;
+      targetEl.object3D.add(portalGroup);
+
+      /* --- the aperture: stencil only, no colour, no depth --- */
+      portalMask = new THREE.Mesh(
+        new THREE.PlaneGeometry(W, H),
+        new THREE.MeshBasicMaterial({
+          colorWrite: false,
+          depthWrite: false,
+          depthTest: false,
+          stencilWrite: true,
+          stencilRef: STENCIL_REF,
+          stencilFunc: THREE.AlwaysStencilFunc,
+          stencilFail: THREE.ReplaceStencilOp,
+          stencilZFail: THREE.ReplaceStencilOp,
+          stencilZPass: THREE.ReplaceStencilOp
+        })
+      );
+      portalMask.position.z = 0.0015;
+      portalMask.renderOrder = 0;
+      portalMask.scale.set(0, 0.02, 1);
+      portalGroup.add(portalMask);
+
+      /* --- sky at the very back --- */
+      const back = new THREE.Mesh(
+        new THREE.PlaneGeometry(W * 1.6, H * 1.6),
+        stencilInside(new THREE.MeshBasicMaterial({ map: makeSkyTexture(pal), toneMapped: false }))
+      );
+      back.position.z = -D;
+      back.renderOrder = 1;
+      portalGroup.add(back);
+
+      /* --- drifting cloud band --- */
+      const cloudMat = stencilInside(new THREE.MeshBasicMaterial({
+        map: makeCloudTexture(pal), transparent: true, toneMapped: false,
+        depthWrite: false, opacity: 0.9
+      }));
+      voidClouds = new THREE.Mesh(new THREE.PlaneGeometry(W * 1.55, H * 1.1), cloudMat);
+      voidClouds.position.z = -D + 0.015;
+      voidClouds.renderOrder = 1;
+      portalGroup.add(voidClouds);
+
+      /* --- three skyline tiers at real depth.
+             This is where the beauty comes from: move your head and
+             the near rooftops slide against the far ones, because
+             they genuinely are at different distances. --- */
+      const tierZ = [-D * 0.78, -D * 0.52, -D * 0.28];
+      const tierW = [1.5, 1.28, 1.1];
+      for (let i = 0; i < 3; i++) {
+        const m = new THREE.Mesh(
+          new THREE.PlaneGeometry(W * tierW[i], H * tierW[i]),
+          stencilInside(new THREE.MeshBasicMaterial({
+            map: makeSkylineTexture(pal, i), transparent: true,
+            toneMapped: false, depthWrite: false
+          }))
+        );
+        m.position.set(0, -H * 0.06 * (2 - i), tierZ[i]);
+        m.renderOrder = 1;
+        portalGroup.add(m);
+        voidLayers.push(m);
+      }
+
+      /* --- side walls (DoubleSide so normal direction can't bite) --- */
+      const texH = makeWallTexture(pal, true);
+      const texV = makeWallTexture(pal, false);
+      const wall = tex => stencilInside(new THREE.MeshBasicMaterial({
+        map: tex, toneMapped: false, side: THREE.DoubleSide
+      }));
+
+      const left = new THREE.Mesh(new THREE.PlaneGeometry(D, H), wall(texH));
+      left.position.set(-W / 2, 0, -D / 2);
+      left.rotation.y = Math.PI / 2;
+
+      const right = new THREE.Mesh(new THREE.PlaneGeometry(D, H), wall(texH));
+      right.position.set(W / 2, 0, -D / 2);
+      right.rotation.y = -Math.PI / 2;
+
+      const top = new THREE.Mesh(new THREE.PlaneGeometry(W, D), wall(texV));
+      top.position.set(0, H / 2, -D / 2);
+      top.rotation.x = Math.PI / 2;
+
+      const bottom = new THREE.Mesh(new THREE.PlaneGeometry(W, D), wall(texV));
+      bottom.position.set(0, -H / 2, -D / 2);
+      bottom.rotation.x = -Math.PI / 2;
+
+      [left, right, top, bottom].forEach(m => { m.renderOrder = 1; portalGroup.add(m); });
+
+      /* --- kites drifting inside the void, at real depth --- */
+      const srcs = ["#kiteOrange", "#kiteBlue", "#kiteWhite"];
+      for (let i = 0; i < 7; i++) {
+        const img = document.querySelector(srcs[i % 3]);
+        const tex = new THREE.Texture(img);
+        tex.needsUpdate = true;
+        tex.colorSpace = THREE.SRGBColorSpace;
+        const w = 0.030 + Math.random() * 0.030;
+        const m = new THREE.Mesh(
+          new THREE.PlaneGeometry(w, w * KITE_ASPECT),
+          stencilInside(new THREE.MeshBasicMaterial({
+            map: tex, transparent: true, toneMapped: false, depthWrite: false, opacity: 0.85
+          }))
+        );
+        m.renderOrder = 2;
+        const depth = -0.06 - Math.random() * (D - 0.12);
+        m.position.set(
+          (Math.random() - 0.5) * W * 0.82,
+          (Math.random() - 0.5) * H * 0.66,
+          depth
+        );
+        m.rotation.z = Math.PI / 4 + (Math.random() - 0.5) * 0.5;
+        portalGroup.add(m);
+        voidKites.push({
+          mesh: m,
+          baseY: m.position.y,
+          baseX: m.position.x,
+          phase: Math.random() * 6.28,
+          speed: 0.15 + Math.random() * 0.25,
+          drift: 0.010 + Math.random() * 0.020
+        });
+      }
+
+      /* --- slow light motes for depth cueing --- */
+      const N = 90;
+      const pos = new Float32Array(N * 3);
+      const col = new Float32Array(N * 3);
+      const acc = new THREE.Color(pal.accent);
+      for (let i = 0; i < N; i++) {
+        pos[i * 3]     = (Math.random() - 0.5) * W;
+        pos[i * 3 + 1] = (Math.random() - 0.5) * H;
+        pos[i * 3 + 2] = -0.02 - Math.random() * (D - 0.04);
+        const b = 0.25 + Math.random() * 0.75;
+        col[i * 3] = acc.r * b; col[i * 3 + 1] = acc.g * b; col[i * 3 + 2] = acc.b * b;
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+      voidMotes = new THREE.Points(geo, stencilInside(new THREE.PointsMaterial({
+        size: 0.007,
+        map: dotTexture,
+        vertexColors: true,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        sizeAttenuation: true
+      })));
+      voidMotes.frustumCulled = false;
+      voidMotes.renderOrder = 2;
+      portalGroup.add(voidMotes);
+    }
+
+    /* Built lazily — a viewer who never opens the portal shouldn't
+       pay for six 1024px textures they'll never see. */
+    let portalOn = false, portalBuilt = false;
+
+    function ensurePortal() {
+      if (portalBuilt) return;
+      portalBuilt = true;
+      buildPortal();
+    }
+
+    function setPortal(on, animate) {
+      portalOn = !!on;
+      store.set(K_PORTAL, portalOn ? "1" : "0");
+      if (btnPortal) btnPortal.classList.toggle("on", portalOn);
+
+      if (portalOn) {
+        ensurePortal();
+        if (portalGroup) { portalGroup.visible = true; openPortal(); }
+      } else if (portalGroup) {
+        portalGroup.visible = false;
+        portalMask.scale.set(0, 0.02, 1);
+      }
+      applyFilmPlacement(animate);
+    }
+
+    /* The film either sits ON the poster (seamless, and the whole
+       point of the piece) or hangs INSIDE the void. */
+    function applyFilmPlacement(animate) {
+      const targetZ = portalOn ? CONFIG.filmDepth : 0.01;
+      const targetS = portalOn ? CONFIG.filmScaleInPortal : 1;
+
+      const mesh = arVideo.getObject3D("mesh");
+      if (mesh && mesh.material) {
+        if (portalOn) { stencilInside(mesh.material); mesh.renderOrder = 3; }
+        else { mesh.material.stencilWrite = false; mesh.renderOrder = 0; }
+
+        /* Feather the film's border. Re-applied here because A-Frame
+           rebuilds the material when the video source binds. */
+        if (CONFIG.featherEdges) {
+          if (!featherTex) featherTex = makeFeatherTexture(CONFIG.featherAmount);
+          if (mesh.material.alphaMap !== featherTex) {
+            mesh.material.alphaMap = featherTex;
+            mesh.material.transparent = true;
+            mesh.material.needsUpdate = true;
+          }
+        }
+      }
+
+      if (!animate) {
+        arVideo.object3D.position.z = targetZ;
+        arVideo.object3D.scale.set(targetS, targetS, 1);
+        return;
+      }
+      const z0 = arVideo.object3D.position.z;
+      const s0 = arVideo.object3D.scale.x;
+      let t = 0;
+      addTask(dt => {
+        t += dt;
+        const p = Math.min(t / 620, 1);
+        const e = easeOutCubic(p);
+        arVideo.object3D.position.z = z0 + (targetZ - z0) * e;
+        const s = s0 + (targetS - s0) * e;
+        arVideo.object3D.scale.set(s, s, 1);
+        return p < 1;
+      });
+    }
+
+    function openPortal() {
+      if (!portalGroup) return;
+      portalGroup.visible = true;
+      let t = 0;
+      addTask(dt => {
+        if (!sessionLive || !portalOn) { return false; }
+        t += dt;
+        const p = Math.min(t / CONFIG.portalOpenMs, 1);
+        const e = easeOutCubic(p);
+        portalMask.scale.set(e, 0.02 + 0.98 * e, 1);
+        return p < 1;
+      });
+    }
+
+    function closePortal() {
+      if (!portalGroup) return;
+      portalGroup.visible = false;
+      portalMask.scale.set(0, 0.02, 1);
+    }
+
+    function updateVoid(dt) {
+      if (!portalGroup || !portalGroup.visible) return;
+      const s = dt / 1000;
+      if (voidClouds) {
+        voidClouds.position.x += s * 0.004;
+        if (voidClouds.position.x > POSTER_W * 0.28) voidClouds.position.x = -POSTER_W * 0.28;
+      }
+      for (const k of voidKites) {
+        k.phase += s * k.speed;
+        k.mesh.position.y = k.baseY + Math.sin(k.phase) * k.drift;
+        k.mesh.position.x = k.baseX + Math.cos(k.phase * 0.7) * k.drift * 0.6;
+        k.mesh.rotation.z += s * 0.12 * (1 + gust);
+      }
+      if (voidMotes) {
+        const p = voidMotes.geometry.attributes.position;
+        const a = p.array;
+        for (let i = 0; i < a.length; i += 3) {
+          a[i + 1] += s * (0.006 + gust * 0.03);
+          if (a[i + 1] > POSTER_H / 2) a[i + 1] = -POSTER_H / 2;
+        }
+        p.needsUpdate = true;
+      }
+    }
 
 
     /* ====================================================
@@ -1416,6 +2133,17 @@
           return p < 1;
         });
       });
+
+      /* Then retire it. A rigid rectangle held against a curved sheet
+         is the single most obvious tell that registration is off. */
+      let hold = 0;
+      addTask(dt => {
+        if (!sessionLive) return false;
+        hold += dt;
+        if (hold < CONFIG.frameHoldMs) return true;
+        animateFrameOut(CONFIG.frameFadeMs);
+        return false;
+      });
     }
 
     function animateFrameOut(duration) {
@@ -1439,7 +2167,9 @@
       document.body.classList.add("revealed");
       setWindLevel(0.02, 1.6);   /* duck the wind bed under the film */
 
-      arVideo.object3D.scale.set(0.85, 0.85, 1);
+      const full = portalOn ? CONFIG.filmScaleInPortal : 1;
+      const from = full * 0.85;
+      arVideo.object3D.scale.set(from, from, 1);
       setOp(arVideo, 0);
       let t = 0;
       addTask(dt => {
@@ -1447,7 +2177,7 @@
         t += dt;
         const p = Math.min(t / 1200, 1);
         const ease = p === 1 ? 1 : 1 - Math.pow(2, -10 * p);
-        const s = 0.85 + 0.15 * ease;
+        const s = from + (full - from) * ease;
         arVideo.object3D.scale.set(s, s, 1);
         setOp(arVideo, Math.min(p / 0.6, 1));
         return p < 1;
@@ -1497,8 +2227,11 @@
         if (trailsFront) trailsFront.update(dt);
         if (trailsBack)  trailsBack.update(dt);
 
+        updateVoid(dt);
         updateParallax(dt);
+        updateSpatialAudio();
         updateMic(dt);
+        updateDebug(dt);
 
         if (document.body.classList.contains("state-scanning")) {
           scanClock += dt;
@@ -1661,6 +2394,7 @@
            two-second wait, no rewinding the film. */
         hideChip();
         setState("tracking");
+        if (portalOn && portalGroup) portalGroup.visible = true;
         if (hasRevealed && video.paused && !cinema) video.play().catch(() => {});
         return;
       }
@@ -1673,8 +2407,9 @@
       playDetectionChime();
 
       startWindBed();
-      setWindLevel(0.05, 2.0);
+      setWindLevel(todPalette().wind, 2.0);
 
+      if (portalOn) openPortal();
       animateFrameIn();
       resetKites();
       launchKites(false);
@@ -1719,6 +2454,7 @@
       setWindLevel(0, 0.8);
       animateFrameOut(400);
       fadeAllOut(400);
+      closePortal();
 
       scanClock = 0;
       setState("scanning");
@@ -1780,6 +2516,10 @@
       videoBound = true;
       arVideo.setAttribute("material", "src", "#film");
       setOp(arVideo, 0);
+      /* Re-apply placement: A-Frame has just rebuilt the material, so
+         any stencil state set earlier is gone. Deferred a tick so the
+         rebuild has finished. */
+      setTimeout(() => applyFilmPlacement(false), 0);
     });
 
 
@@ -1997,6 +2737,7 @@
           }).catch(() => { video.muted = windMode ? true : !soundOn; });
         }
       } catch (e) {}
+      setupSpatialAudio();
     }
 
     async function startAR(resumeFrom) {
@@ -2008,6 +2749,26 @@
       patchCameraConstraints();
 
       setState("loading");
+
+      /* Only re-run setup when a URL override is actually present, so
+         the default path keeps whatever the mindar-image attribute set. */
+      if (TRACK_OVERRIDDEN) {
+        try {
+          const sys = sceneEl.systems["mindar-image-system"];
+          if (sys && typeof sys.setup === "function") {
+            sys.setup({
+              imageTargetSrc: "./targets.mind?v=2",
+              maxTrack: 1,
+              showStats: false,
+              uiLoading: "no", uiScanning: "no", uiError: "no",
+              filterMinCF:     TRACK.filterMinCF,
+              filterBeta:      TRACK.filterBeta,
+              missTolerance:   TRACK.missTolerance,
+              warmupTolerance: TRACK.warmupTolerance
+            });
+          }
+        } catch (e) { console.warn("tracking override failed, using defaults", e); }
+      }
 
       try {
         await sceneEl.systems["mindar-image-system"].start();
@@ -2036,9 +2797,76 @@
 
 
     /* ====================================================
+       CONTACT CARD
+       Everything here degrades: leave a CONTACT field blank and
+       its link simply doesn't render.
+    ==================================================== */
+    function buildContactCard() {
+      document.querySelector("#endName").textContent = CONTACT.name || "The End";
+      const roleEl = document.querySelector("#endRole");
+      roleEl.textContent = CONTACT.role || "";
+      roleEl.style.display = CONTACT.role ? "" : "none";
+
+      const links = document.querySelector("#endLinks");
+      links.innerHTML = "";
+      const add = (label, href) => {
+        if (!href) return;
+        const a = document.createElement("a");
+        a.textContent = label;
+        a.href = href;
+        a.rel = "noopener noreferrer";
+        if (!href.startsWith("mailto:")) a.target = "_blank";
+        links.appendChild(a);
+      };
+      add("Email", CONTACT.email ? "mailto:" + CONTACT.email : "");
+      add("LinkedIn", CONTACT.linkedin);
+      add("Website", CONTACT.site);
+
+      document.querySelector("#btnSaveContact").hidden =
+        !(CONTACT.email || CONTACT.phone || CONTACT.linkedin);
+    }
+
+    function vcardText() {
+      const esc = s => String(s).replace(/([,;\\])/g, "\\$1");
+      const l = ["BEGIN:VCARD", "VERSION:3.0"];
+      if (CONTACT.name) {
+        l.push("FN:" + esc(CONTACT.name));
+        l.push("N:" + esc(CONTACT.name) + ";;;;");
+      }
+      if (CONTACT.role)     l.push("TITLE:" + esc(CONTACT.role));
+      if (CONTACT.email)    l.push("EMAIL;TYPE=INTERNET:" + CONTACT.email);
+      if (CONTACT.phone)    l.push("TEL;TYPE=CELL:" + CONTACT.phone);
+      if (CONTACT.linkedin) l.push("URL:" + CONTACT.linkedin);
+      if (CONTACT.site && CONTACT.site !== CONTACT.linkedin) l.push("URL:" + CONTACT.site);
+      l.push("END:VCARD");
+      return l.join("\r\n");
+    }
+
+    async function saveContact() {
+      const fname = (CONTACT.name || "contact").trim().replace(/\s+/g, "-").toLowerCase() + ".vcf";
+      const blob = new Blob([vcardText()], { type: "text/vcard;charset=utf-8" });
+      try {
+        const file = new File([blob], fname, { type: "text/vcard" });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: CONTACT.name || "Contact" });
+          return;
+        }
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = fname;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+
+
+    /* ====================================================
        WIRING
     ==================================================== */
     btnStart.addEventListener("click", () => startAR(0));
+    document.querySelector("#btnSaveContact").addEventListener("click", saveContact);
 
     btnResume.addEventListener("click", () => {
       startAR(parseFloat(store.get(K_TIME, "0")) || 0);
@@ -2060,6 +2888,12 @@
 
     btnShot.addEventListener("click", captureShot);
     btnCinema.addEventListener("click", () => enterCinema(false));
+
+    btnPortal.addEventListener("click", () => {
+      setPortal(!portalOn, true);
+      showChip(portalOn ? "Portal open — look around it" : "Back on the poster", 2200);
+      vibrate(12);
+    });
     btnExitCine.addEventListener("click", exitCinema);
     btnEndClose.addEventListener("click", () => {
       document.body.classList.remove("ended");
@@ -2094,18 +2928,74 @@
     /* ====================================================
        INIT
     ==================================================== */
+    /* ====================================================
+       DEBUG READOUT  (?debug=1)
+       If fps is low the tracker is starving and the fix is CPU
+       (?camW=640), not filter values.
+    ==================================================== */
+    let dbgEl = null, dbgFrames = 0, dbgAcc = 0, dbgFps = 0;
+
+    function initDebug() {
+      if (!DEBUG) return;
+      dbgEl = document.createElement("div");
+      dbgEl.style.cssText =
+        "position:fixed;left:8px;top:calc(8px + env(safe-area-inset-top,0px));z-index:13000;" +
+        "font:11px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#8fffa8;" +
+        "background:rgba(0,0,0,.62);padding:7px 9px;border-radius:8px;white-space:pre;pointer-events:none";
+      document.body.appendChild(dbgEl);
+    }
+
+    function updateDebug(dt) {
+      if (!dbgEl) return;
+      dbgFrames++; dbgAcc += dt;
+      if (dbgAcc < 500) return;
+      dbgFps = Math.round(dbgFrames / (dbgAcc / 1000));
+      dbgFrames = 0; dbgAcc = 0;
+      const cam = getCameraVideo();
+      dbgEl.textContent =
+        "fps      " + dbgFps + "\n" +
+        "camera   " + (cam && cam.videoWidth ? cam.videoWidth + "x" + cam.videoHeight : "—") + "\n" +
+        "minCF    " + TRACK.filterMinCF + "\n" +
+        "beta     " + TRACK.filterBeta + "\n" +
+        "miss     " + TRACK.missTolerance + "\n" +
+        "portal   " + (CONFIG.portal ? "on" : "off") + "\n" +
+        "tracked  " + (tracked ? "yes" : "no");
+    }
+
+
+    /* Anything outside the portal must draw after the void, or the
+       stencil pass will have it appear through the aperture. */
+    function applyOutsideRenderOrder() {
+      const bump = (el, order) => {
+        const m = el && el.getObject3D("mesh");
+        if (m) m.renderOrder = order;
+      };
+      frameEls.forEach(el => bump(el, 10));
+      kites.forEach(k => bump(k.el, 11));
+      sparks.forEach(s => bump(s, 11));
+      glints.forEach(g => bump(g, 11));
+    }
+
     function init() {
       dotTexture = makeDotTexture();
       buildKites();
       trailsFront = makeTrailSystem(groupFront.object3D);
       trailsBack  = makeTrailSystem(groupBack.object3D);
+      applyOutsideRenderOrder();
       resetKites();
       setOp(arVideo, 0);
-      arVideo.object3D.scale.set(0.85, 0.85, 1);
+
+      /* An explicit ?portal= wins; otherwise remember the viewer's
+         last choice; otherwise the seamless default. */
+      const saved = store.get(K_PORTAL, null);
+      setPortal(QS.has("portal") ? CONFIG.portal
+                : (saved !== null ? saved === "1" : CONFIG.portal), false);
       sceneEl.setAttribute("experience-driver", "");
       updateSoundButtons();
       updateOrientationClass();
       refreshResumeUI();
+      buildContactCard();
+      initDebug();
       setState("intro");
     }
 
