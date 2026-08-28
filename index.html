@@ -840,22 +840,27 @@
       /* Tint the void to the viewer's local time of day */
       timeOfDay: true,
 
-      /* ---- EDGE SOFTENING ----
-         A few pixels of tracking error against a hard rectangular
-         edge reads as a glaring misalignment; against a feathered
-         one it reads as nothing. This does not improve tracking, it
-         makes the error that remains far less visible — which is
-         worth as much, because on a hand-held bending sheet the
-         error is never going fully away.
+      /* ---- EDGE SOFTENING ----  OFF. Tried it, it looked bad.
 
-         It works especially well here: the film's opening frame IS
-         the poster art, so the blend is close to invisible. */
-      featherEdges: true,
-      featherAmount: 0.05,   /* fraction of the plane faded at each edge */
+         The idea was that a few pixels of tracking error against a
+         hard edge reads as glaring misalignment, while against a
+         feathered one it reads as nothing. The justification was
+         that the film opens on the poster art itself so the blend
+         would be invisible — but that only holds for the first
+         second. The film moves on to an office, a desk, a meeting
+         room, and a soft edge then cross-dissolves an unrelated
+         scene into the rooftop art, which is just a smear. At 5%
+         per side it was a wide one.
 
-      /* The thin frame is a lovely reveal, but leaving a perfectly
-         rigid rectangle sitting on a curved sheet advertises every
-         pixel of error. Draw it, then let it go. */
+         Left in place, off, and dialled way down for anyone who
+         wants to experiment: ?feather=0.015 enables it. */
+      featherEdges: false,
+      featherAmount: 0.015,
+
+      /* Likewise: the frame used to fade out after the reveal, which
+         removed the last crisp boundary and left the film dissolving
+         into nothing. It stays put now. ?framefade=1 restores it. */
+      frameAutoFade: false,
       frameHoldMs: 2600,
       frameFadeMs: 900
     };
@@ -896,6 +901,12 @@
     const qsNum = (k, d) => { const v = parseFloat(QS.get(k)); return isFinite(v) ? v : d; };
 
     if (QS.has("portal")) CONFIG.portal = QS.get("portal") !== "0";
+    if (QS.has("feather")) {
+      const f = parseFloat(QS.get("feather"));
+      CONFIG.featherEdges  = isFinite(f) && f > 0;
+      CONFIG.featherAmount = isFinite(f) && f > 0 ? f : CONFIG.featherAmount;
+    }
+    if (QS.has("framefade")) CONFIG.frameAutoFade = QS.get("framefade") !== "0";
     CONFIG.camWidth  = qsNum("camW", CONFIG.camWidth);
     CONFIG.camHeight = qsNum("camH", CONFIG.camHeight);
     CONFIG.filmDepth = qsNum("filmDepth", CONFIG.filmDepth);
@@ -1778,8 +1789,8 @@
         if (portalOn) { stencilInside(mesh.material); mesh.renderOrder = 3; }
         else { mesh.material.stencilWrite = false; mesh.renderOrder = 0; }
 
-        /* Feather the film's border. Re-applied here because A-Frame
-           rebuilds the material when the video source binds. */
+        /* Border feathering, off unless explicitly asked for. Applied
+           here because A-Frame rebuilds the material on video bind. */
         if (CONFIG.featherEdges) {
           if (!featherTex) featherTex = makeFeatherTexture(CONFIG.featherAmount);
           if (mesh.material.alphaMap !== featherTex) {
@@ -1787,6 +1798,9 @@
             mesh.material.transparent = true;
             mesh.material.needsUpdate = true;
           }
+        } else if (mesh.material.alphaMap) {
+          mesh.material.alphaMap = null;
+          mesh.material.needsUpdate = true;
         }
       }
 
@@ -2134,8 +2148,10 @@
         });
       });
 
-      /* Then retire it. A rigid rectangle held against a curved sheet
-         is the single most obvious tell that registration is off. */
+      if (!CONFIG.frameAutoFade) return;
+
+      /* Opt-in: retire the frame after the reveal. Off by default —
+         losing it takes away the only crisp edge the film has. */
       let hold = 0;
       addTask(dt => {
         if (!sessionLive) return false;
