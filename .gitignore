@@ -1,0 +1,6 @@
+# Local dev scaffolding (preview server config)
+.claude/
+
+# Local rollback copies — kept on disk, deliberately not in the repo
+index - backup of last working file.html
+film-web - backup.mp4
